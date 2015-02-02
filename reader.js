@@ -1,6 +1,11 @@
+// todo: add parse result type so any reader can error
+//       for example if it hits an unexpected eof
+
 var eof = ["eof"];
 function eofp(c) { return eof === c; }
 
+// todo: make all uses of read_char and peek_char match cases for
+//       eof | char of string
 function stream(string) {
     var length = string.length;
     this.pos = 0;
@@ -136,6 +141,7 @@ function reader_for(c) {
     return false;
 }
 
+// todo: use option type, make sure all uses of read match it
 function read(input_stream) {
     var c = input_stream.peek_char();
     var reader = reader_for(c);
@@ -143,6 +149,7 @@ function read(input_stream) {
 }
 
 // todo: use conses instead of arrays
+//       loop for recursive case instead of recursion
 function read_all(sexps, input_stream) {
     skip_whitespace(input_stream);
     var c = input_stream.peek_char();

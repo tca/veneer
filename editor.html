@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>editor</title>
+    <style type="text/css">
+      .editor, .repl { height:42vh; width:100%; font-family:courier }
+    </style>
+    <script type="text/javascript" src="reader.js"></script>
+    <script type="text/javascript">
+      function run() {
+      var ed = document.getElementById("editor");
+      var repl = document.getElementById("repl");
+      
+      repl.value = JSON.stringify(read_all([], new stream(ed.value)));
+      }
+    </script>
+  </head>
+  <body>
+    <textarea id="editor" class="editor" onkeypress="run()"></textarea>
+    <textarea id="repl" class="repl"></textarea>
+  </body>
+</html>
