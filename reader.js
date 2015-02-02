@@ -16,12 +16,13 @@ function stream(string) {
     }
     this.read_char = function() {
         var old_pos = this.pos;
+        console.log("char: '" + string[old_pos] + "'");
         this.pos++;
-        if (string[old_pos] == "\n") { line++; }
+        //if (string[old_pos] == "\n") { line++; }
         return (old_pos >= length) ? eof : string[old_pos];
     }
     this.unread_char = function() {
-        if (string[this.pos-1] == "\n") { line--; }
+        //if (string[this.pos-1] == "\n") { line--; }
         this.pos--;
     }
     this.fork = function() {
@@ -33,7 +34,7 @@ function stream(string) {
 }
 
 function dotp(c) { return c == "."; }
-function whitespacep(c) { return /\s/.test(c); }
+function whitespacep(c) { return /\s+/.test(c); }
 function symbolicp(c) { return /[a-zA-Z0-9=\/\\!@#$%^&*_+=-?.~<>]/.test(c); }
 function number_stringp(cs) { return /[0-9]+/.test(cs.join("")); }
 
@@ -51,10 +52,14 @@ function read_symbol(input_stream) {
     var buffer = [input_stream.read_char()];
     var c;
     while(true) {
+        console.log("foo");
         c = input_stream.read_char();
+        console.log("bar");
         if(!eofp(c) && symbolicp(c)) {
+            console.log("symbolic: " + c);
             buffer.push(c);
         } else {
+            console.log("not: " + c);
             input_stream.unread_char();
             return buffer.join("");
         }
@@ -78,7 +83,6 @@ function read_string(input_stream) {
 
 // todo: don't automatically read next
 function read_whitespace(input_stream) {
-    input_stream.read_char();
     skip_whitespace(input_stream);
     return read(input_stream);
 }
@@ -113,7 +117,7 @@ function read_unquoted(input_stream) {
 
 function read_list(input_stream) {
     input_stream.read_char();
-    return read_all([], input_stream);
+    return read_all([], input_stream, false);
 }
 
 function read_hash(input_stream) {
@@ -122,7 +126,7 @@ function read_hash(input_stream) {
     case "f": return false;
     case "t": return true;
     case "\\": return input_stream.read_char();
-    default: console.log("unknown hash code");
+    default: throw "unknown hash code";
     }
 }
 
@@ -146,14 +150,23 @@ function read(input_stream) {
     var c = input_stream.peek_char();
     var reader = reader_for(c);
     if(reader) { return reader(input_stream); }
+    throw "no reader for: " + c;
 }
 
 // todo: use conses instead of arrays
 //       loop for recursive case instead of recursion
-function read_all(sexps, input_stream) {
+function read_all(sexps, input_stream, t) {
     skip_whitespace(input_stream);
     var c = input_stream.peek_char();
-    if (eofp(c) || c == ")") {
+    console.log({sexps: JSON.stringify(sexps), c: c});
+    if (eofp(c)) {
+        if (t) {
+            input_stream.read_char();
+            return sexps;
+        } else {
+            throw "unexpected eof"
+        }
+    } else if (c == ")") {
         input_stream.read_char();
         return sexps;
     } else if (dotp(input_stream.peek_char())) {
@@ -164,10 +177,21 @@ function read_all(sexps, input_stream) {
         if (eofp(c)|| c == ")") {
             input_stream.read_char();
         } else {
-            console.log("stuff after dot");
+            throw "stuff after dot";
         }
         return result;
     } else {
-        return read_all(sexps.concat([read(input_stream)]), input_stream);
+        skip_whitespace(input_stream);
+        return read_all(sexps.concat([read(input_stream)]), input_stream, t);
+    }
+}
+
+
+function read_string(str) {
+    try {
+        return read_all([], new stream(str), true)
+    }
+    catch(err) {
+        return err;
     }
 }

@@ -4,15 +4,17 @@
   <head>
     <title>editor</title>
     <style type="text/css">
-      .editor, .repl { height:42vh; width:100%; font-family:courier }
+      body { padding:0; margin: 0; }
+      .editor, .repl { height:94vh; width:50%; font-family:courier;  margin:-2.5px; padding: 0; }
     </style>
     <script type="text/javascript" src="reader.js"></script>
     <script type="text/javascript">
       function run() {
+      
       var ed = document.getElementById("editor");
       var repl = document.getElementById("repl");
       
-      repl.value = JSON.stringify(read_all([], new stream(ed.value)));
+      repl.value = JSON.stringify(read_string(ed.value));
       }
     </script>
   </head>
