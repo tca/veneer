@@ -16,7 +16,6 @@ function stream(string) {
     }
     this.read_char = function() {
         var old_pos = this.pos;
-        console.log("char: '" + string[old_pos] + "'");
         this.pos++;
         //if (string[old_pos] == "\n") { line++; }
         return (old_pos >= length) ? eof : string[old_pos];
@@ -52,14 +51,10 @@ function read_symbol(input_stream) {
     var buffer = [input_stream.read_char()];
     var c;
     while(true) {
-        console.log("foo");
         c = input_stream.read_char();
-        console.log("bar");
         if(!eofp(c) && symbolicp(c)) {
-            console.log("symbolic: " + c);
             buffer.push(c);
         } else {
-            console.log("not: " + c);
             input_stream.unread_char();
             return buffer.join("");
         }
@@ -117,7 +112,34 @@ function read_unquoted(input_stream) {
 
 function read_list(input_stream) {
     input_stream.read_char();
-    return read_all([], input_stream, false);
+    return read_list_aux([], input_stream);
+}
+
+function read_list_aux(sexps, input_stream) {
+   skip_whitespace(input_stream);
+    var c = input_stream.peek_char();
+    if (eofp(c)) {
+        throw "unexpected eof" // partial result
+    } else if (c == ")") {
+        input_stream.read_char();
+        return sexps;
+    } else if (dotp(input_stream.peek_char())) {
+        input_stream.read_char();
+        var result = sexps.concat(read(input_stream));
+        skip_whitespace(input_stream);
+        var c = input_stream.peek_char();
+        if (c == ")") {
+            input_stream.read_char();
+        } else if (eofp(c)){
+            throw "unexpected eof"
+        } else {
+            throw "stuff after dot";
+        }
+        return result;
+    } else {
+        skip_whitespace(input_stream);
+        return read_list_aux(sexps.concat([read(input_stream)]), input_stream);
+    }
 }
 
 function read_hash(input_stream) {
@@ -129,6 +151,7 @@ function read_hash(input_stream) {
     default: throw "unknown hash code";
     }
 }
+
 
 function reader_for(c) {
     switch(c) {
@@ -158,28 +181,9 @@ function read(input_stream) {
 function read_all(sexps, input_stream, t) {
     skip_whitespace(input_stream);
     var c = input_stream.peek_char();
-    console.log({sexps: JSON.stringify(sexps), c: c});
     if (eofp(c)) {
-        if (t) {
-            input_stream.read_char();
-            return sexps;
-        } else {
-            throw "unexpected eof"
-        }
-    } else if (c == ")") {
         input_stream.read_char();
         return sexps;
-    } else if (dotp(input_stream.peek_char())) {
-        input_stream.read_char();
-        var result = sexps.concat(read(input_stream));
-        skip_whitespace(input_stream);
-        var c = input_stream.peek_char();
-        if (eofp(c)|| c == ")") {
-            input_stream.read_char();
-        } else {
-            throw "stuff after dot";
-        }
-        return result;
     } else {
         skip_whitespace(input_stream);
         return read_all(sexps.concat([read(input_stream)]), input_stream, t);
