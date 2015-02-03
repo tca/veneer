@@ -8,8 +8,10 @@
       pre { margin:0; }
       #repl { overflow-y:scroll;  }
       
-      .editor, .repl { height:94vh; width:50%; float:left; font-family:courier, monospace;  margin:-2.5px; padding: 0; background-color:#fff; border-width:0;}
-      
+      .editor, .repl { height:100vh; width:50%; float:left; font-family:courier, monospace;  margin:0; padding: 0; background-color:#fff; border-width:0;}
+      .editor { overflow-y:scroll; }
+      .repl {  }
+
       .inputbox { display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
       .result { background-color: #eee; margin:0; padding: 2px 8px; }
       
@@ -17,6 +19,7 @@
     <script type="text/javascript" src="reader.js"></script>
   </head>
   <body>
+
     <textarea id="editor" class="editor">
 (define (membero x l)
  (fresh (head tail)
@@ -32,7 +35,8 @@
     (== x `(,head . ,xtail))
     (== z `(,head . ,ztail)))
     (appendo xtail y ztail))))
-    </textarea>
+</textarea>
+
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
       var repl = document.getElementById("repl");
