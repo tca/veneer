@@ -5,22 +5,19 @@
     <title>editor</title>
     <style type="text/css">
       body { padding:0; margin: 0; }
-      .editor, .repl { height:94vh; width:50%; font-family:courier, monospace;  margin:-2.5px; padding: 0; }
+      pre { margin:0; }
+      #repl { overflow-y:scroll;  }
+      
+      .editor, .repl { height:94vh; width:50%; float:left; font-family:courier, monospace;  margin:-2.5px; padding: 0; background-color:#fff; border-width:0;}
+      
+      .inputbox { display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
+      .result { background-color: #eee; margin:0; padding: 2px 8px; }
+      
     </style>
     <script type="text/javascript" src="reader.js"></script>
-    <script type="text/javascript">
-      function run() {
-      
-      var ed = document.getElementById("editor");
-      var repl = document.getElementById("repl");
-      
-      repl.value = JSON.stringify(read_string(ed.value));
-      }
-    </script>
   </head>
   <body>
-    <textarea id="editor" class="editor" onkeypress="run()">
-
+    <textarea id="editor" class="editor">
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
@@ -35,8 +32,35 @@
     (== x `(,head . ,xtail))
     (== z `(,head . ,ztail)))
     (appendo xtail y ztail))))
-
     </textarea>
-    <textarea id="repl" class="repl"></textarea>
+    <div id="repl" class="repl"></div>
+    <script type="text/javascript">
+      var repl = document.getElementById("repl");
+      
+      function repl_getline() {
+          var inputbox = document.createElement("pre");
+          inputbox.className += "inputbox";
+          inputbox.contentEditable = true;
+          inputbox.onkeypress = function(e) {
+              if (e.keyCode == 13) {
+                  var result_val = JSON.stringify(read_string(inputbox.textContent), null, ' ');
+                  var result = document.createTextNode("=> " + result_val);
+                  var result_elt = document.createElement("pre");
+                  result_elt.className += "result";
+                  result_elt.appendChild(result);
+                  inputbox.contentEditable = false;
+                  repl.appendChild(result_elt);
+                  repl_getline();
+                  return false;
+              }
+          };
+          repl.appendChild(inputbox);
+          inputbox.focus()
+          return(inputbox);
+      }
+      
+      var first_line = repl_getline();
+      first_line.innerText = document.getElementById("editor").value;
+</script>
   </body>
 </html>
