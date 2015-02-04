@@ -15,8 +15,10 @@ function intern(string) {
 }
 
 function reverse(lst,memo) {
-    if (lst == null) { return memo }
-    else { return reverse(lst.cdr, cons(lst.car, memo)); }
+    while(lst != null) {
+        memo = cons(lst.car, memo);
+        lst = lst.cdr;
+    } return memo;
 }
 
 var eof = ["eof"];
