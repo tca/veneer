@@ -35,11 +35,11 @@ function Stream(string) {
     this.read_char = function() {
         var old_pos = this.pos;
         this.pos++;
-        //if (string[old_pos] == "\n") { line++; }
+        if (string[old_pos] == "\n") { this.line++; }
         return (old_pos >= length) ? eof : string[old_pos];
     }
     this.unread_char = function() {
-        //if (string[this.pos-1] == "\n") { line--; }
+        if (string[this.pos-1] == "\n") { this.line--; }
         this.pos--;
     }
     this.fork = function() {
@@ -180,10 +180,10 @@ function reader_for(c) {
     case "`": return read_quasiquoted;
     case ",": return read_unquoted;
     case "(": return read_list;
-    case ";": return read_comment;
+    case ";": return read_after_comment;
     case "#": return read_hash;
     }
-    if (whitespacep(c)) { return read_whitespace; }
+    if (whitespacep(c)) { return read_after_whitespace; }
     if (symbolicp(c)) { return read_symbol; }
     return false;
 }
