@@ -12,8 +12,8 @@
       .editor { overflow-y:scroll; }
       .repl {  }
 
-      .inputbox { display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
-      .result { background-color: #eee; margin:0; padding: 2px 8px; }
+      .inputbox { white-space: pre-wrap; display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
+      .result { white-space: pre-wrap; background-color: #eee; margin:0; padding: 2px 8px; }
       
     </style>
     <script type="text/javascript" src="reader.js"></script>
@@ -46,8 +46,12 @@
           inputbox.contentEditable = true;
           inputbox.onkeypress = function(e) {
               if (e.keyCode == 13) {
-                  var result_val = read_repl(inputbox.textContent);
-      
+                  var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n')
+                                                        .replace(/<[p|div]\s/ig, '\n$0')
+                                                        .replace(/(<([^>]+)>)/ig, "");
+                  try {
+                      var result_val = read_repl(textcontent);
+        
                       var result_val_pp = JSON.stringify(result_val, null, ' ');
                       var result = document.createTextNode("=> " + result_val_pp);
                       var result_elt = document.createElement("pre");
@@ -55,9 +59,10 @@
                       result_elt.appendChild(result);
                       repl.appendChild(result_elt);
 
-                  inputbox.contentEditable = false;
-                  repl_getline();
-                  return false;
+                      inputbox.contentEditable = false;
+                      repl_getline();
+                      return false;
+                  } catch (e) { inputbox.appendChild(document.createElement("br")); return true; }
               }
           };
           repl.appendChild(inputbox);

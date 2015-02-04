@@ -56,7 +56,7 @@ function condition(args) {
 }
 
 function whitespacep(c) { return /\s+/.test(c); }
-function symbolicp(c) { return /[a-zA-Z0-9=\/\\!@#$%^&*_+=-?.~<>]/.test(c); }
+function symbolicp(c) { return /[a-zA-Z0-9=\/\\!@#$%^&*_+=\-?.~<>]/.test(c); }
 function number_stringp(s) { return /^([0-9]*\.)?[0-9]+$/.test(s); }
 
 function skip_whitespace(input_stream) {
