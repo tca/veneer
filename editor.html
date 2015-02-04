@@ -46,9 +46,10 @@
           inputbox.contentEditable = true;
           inputbox.onkeypress = function(e) {
               if (e.keyCode == 13) {
-                  var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n')
-                                                        .replace(/<[p|div]\s/ig, '\n$0')
-                                                        .replace(/(<([^>]+)>)/ig, "");
+                  /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
+                                                         .replace(/<[p|div]\s/ig, '\n$0') 
+                                                         .replace(/(<([^>]+)>)/ig, ""); */
+                  var textcontent = inputbox.textContent;
                   try {
                       var result_val = read_repl(textcontent);
         
@@ -62,7 +63,7 @@
                       inputbox.contentEditable = false;
                       repl_getline();
                       return false;
-                  } catch (e) { inputbox.appendChild(document.createElement("br")); return true; }
+                  } catch (e) { inputbox.appendChild(document.createTextNode("\n")); return true; }
               }
           };
           repl.appendChild(inputbox);
