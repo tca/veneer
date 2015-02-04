@@ -24,7 +24,6 @@ function reverse(lst,memo) {
 var eof = ["eof"];
 function eofp(c) { return eof === c; }
 
-// todo: functional streams?
 function Stream(string) {
     var length = string.length;
     this.pos = 0;
@@ -99,19 +98,13 @@ function read_string(input_stream) {
     }
 }
 
-// todo: don't automatically read next
-function read_whitespace(input_stream) {
+function read_after_whitespace(input_stream) {
     skip_whitespace(input_stream);
     return read(input_stream);
 }
 
-function read_until_end_of_line(input_stream) {
+function read_after_comment(input_stream) {
     while(input_stream.read_char() != "\n") {}
-}
-
-// todo: don't automatically read next
-function read_comment(input_stream) {
-    read_until_end_of_line(input_stream);
     return read(input_stream);
 }
 
@@ -217,7 +210,7 @@ function read_top(sexps, input_stream) {
 
 var read_repl = function(in_stream) { return read_top(null, new Stream(in_stream)); };
 
-function read_string(str) {
+function read_whole_program(str) {
     try { return read_top(null, new Stream(str)); }
     catch(err) { return err.msg; }
 }
