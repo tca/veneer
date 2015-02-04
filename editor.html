@@ -40,27 +40,29 @@
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
       var repl = document.getElementById("repl");
-      
       function repl_getline() {
           var inputbox = document.createElement("pre");
           inputbox.className += "inputbox";
           inputbox.contentEditable = true;
           inputbox.onkeypress = function(e) {
               if (e.keyCode == 13) {
-                  var result_val = JSON.stringify(read_string(inputbox.textContent), null, ' ');
-                  var result = document.createTextNode("=> " + result_val);
-                  var result_elt = document.createElement("pre");
-                  result_elt.className += "result";
-                  result_elt.appendChild(result);
+                  var result_val = read_repl(inputbox.textContent);
+      
+                      var result_val_pp = JSON.stringify(result_val, null, ' ');
+                      var result = document.createTextNode("=> " + result_val_pp);
+                      var result_elt = document.createElement("pre");
+                      result_elt.className += "result";
+                      result_elt.appendChild(result);
+                      repl.appendChild(result_elt);
+
                   inputbox.contentEditable = false;
-                  repl.appendChild(result_elt);
                   repl_getline();
                   return false;
               }
           };
           repl.appendChild(inputbox);
-          inputbox.focus()
-          return(inputbox);
+          inputbox.focus();
+          return inputbox;
       }
       
       var first_line = repl_getline();
