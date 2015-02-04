@@ -58,7 +58,7 @@ function condition(args) {
 
 function whitespacep(c) { return /\s+/.test(c); }
 function symbolicp(c) { return /[a-zA-Z0-9=\/\\!@#$%^&*_+=-?.~<>]/.test(c); }
-function number_stringp(cs) { return /[0-9]+/.test(cs.join("")); }
+function number_stringp(s) { return /^([0-9]*\.)?[0-9]+$/.test(s); }
 
 function skip_whitespace(input_stream) {
     var c;
@@ -78,7 +78,8 @@ function read_symbol(input_stream) {
             buffer.push(c);
         } else {
             input_stream.unread_char();
-            return intern(buffer.join(""));
+            var result = buffer.join("");
+            return (number_stringp(result) ? parseFloat(result) : intern(result));
         }
     }
 }
@@ -152,7 +153,6 @@ function read_list_aux(sexps, input_stream) {
     }
 }
 
-// TODO: resumable
 function read_after_dot(sexps, input_stream) {
     input_stream.read_char();
     var last = read(input_stream);
@@ -195,12 +195,11 @@ function reader_for(c) {
     return false;
 }
 
-// todo: use option type, make sure all uses of read match it
 function read(input_stream) {
     var c = input_stream.peek_char();
     var reader = reader_for(c);
     if(reader) { return reader(input_stream); }
-    throw { msg: "no reader for: " + c };
+    throw "no reader for: " + c;
 }
 
 function read_top(sexps, input_stream) {
