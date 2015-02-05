@@ -22,20 +22,6 @@
   <body>
 
     <textarea id="editor" class="editor">
-(define (membero x l)
- (fresh (head tail)
-  (== l `(,head . ,tail))
-  (conde
-   ((== x head))
-   ((membero x tail)))))
-
-(define (appendo x y z)
- (conde
-  ((== x '()) (== y z))
-  ((fresh (head xtail ytail)
-    (== x `(,head . ,xtail))
-    (== z `(,head . ,ztail)))
-    (appendo xtail y ztail))))
 </textarea>
 
     <div id="repl" class="repl"></div>

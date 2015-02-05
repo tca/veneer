@@ -3,18 +3,6 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
  
-function assp(pred, xs) {
-    while(true) {
-        if(xs == null) {
-            return false;
-        } else if (pred(xs.car)) {
-            return xs.car;
-        } else {
-            xs = xs.cdr;
-        }
-    }
-}
- 
 function walk(u, s) {
     var pr = varp(u) && assp(function(v) { return vareq(u, v); }, s);
     return pr ? walk(pr.cdr, s) : u;
@@ -80,6 +68,7 @@ function bind($, g) {
         return mplus(g($.car), bind($.cdr, g));
     }
 }
+
 function pull($) {
     return procedurep($) ? pull($()) : $;
 }

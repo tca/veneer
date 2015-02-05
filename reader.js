@@ -1,10 +1,3 @@
-function reverse(lst,memo) {
-    while(lst != null) {
-        memo = cons(lst.car, memo);
-        lst = lst.cdr;
-    } return memo;
-}
-
 var eof = ["eof"];
 function eofp(c) { return eof === c; }
 
@@ -125,7 +118,7 @@ function read_list_aux(sexps, input_stream) {
             throw "unexpected eof";
         case ")":
             input_stream.read_char();
-            return reverse(sexps, null);
+            return reverse_aux(sexps, null);
         case ".":
             return read_after_dot(sexps, input_stream);
         default:
@@ -148,7 +141,7 @@ function read_after_dot(sexps, input_stream) {
     default:
         throw "too many expressions after dot";
     }
-    return reverse(sexps, last);
+    return reverse_aux(sexps, last);
 }
 
 function read_hash(input_stream) {
@@ -190,7 +183,7 @@ function read_top(sexps, input_stream) {
         var c = input_stream.peek_char();
         if (c === eof) {
             input_stream.read_char();
-            return reverse(sexps, null);
+            return reverse_aux(sexps, null);
         } else {
             sexps = cons(read(input_stream), sexps);
         }
