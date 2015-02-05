@@ -1,19 +1,3 @@
-
-function pair(car, cdr) {
-    this.car = car;
-    this.cdr = cdr;
-}
-function cons(car,cdr) { return new pair(car,cdr); }
-
-var symbol_table = new Object(null);
-
-function Symbol(str) { this.string = str; }
-function intern(string) {
-    var sym = new Symbol(string);
-    symbol_table[string] = sym;
-    return sym;
-}
-
 function reverse(lst,memo) {
     while(lst != null) {
         memo = cons(lst.car, memo);
@@ -104,8 +88,12 @@ function read_after_whitespace(input_stream) {
 }
 
 function read_after_comment(input_stream) {
-    while(input_stream.read_char() != "\n") {}
-    return read(input_stream);
+    var c;
+    while(true) {
+        c = input_stream.read_char();
+        if(c == "\n") {  return read(input_stream); }
+        else if (c === eof) { throw "eof"; }
+    }
 }
 
 function read_quoted(input_stream) {
@@ -182,6 +170,7 @@ function reader_for(c) {
     case "(": return read_list;
     case ";": return read_after_comment;
     case "#": return read_hash;
+    case eof: return false;
     }
     if (whitespacep(c)) { return read_after_whitespace; }
     if (symbolicp(c)) { return read_symbol; }
