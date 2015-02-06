@@ -17,6 +17,7 @@
       
     </style>
     <script type="text/javascript" src="base.js"></script>
+    <script type="text/javascript" src="mk.js"></script>
     <script type="text/javascript" src="reader.js"></script>
   </head>
   <body>
@@ -38,19 +39,31 @@
                                                          .replace(/(<([^>]+)>)/ig, ""); */
                   var textcontent = inputbox.textContent;
                   try {
-                      var result_val = read_repl(textcontent);
-        
-                      var result_val_pp = JSON.stringify(result_val, null, ' ');
-                      var result = document.createTextNode("=> " + result_val_pp);
+                      var generator = run_program(read_repl(textcontent).car);
                       var result_elt = document.createElement("pre");
                       result_elt.className += "result";
-                      result_elt.appendChild(result);
+                      var answer_text = document.createElement("pre");
+                      result_elt.appendChild(answer_text);
+                      var append_answer = function() { 
+                         var result_val = generator();
+                         var result_val_pp = JSON.stringify(result_val, null, ' ');
+                         var result = document.createTextNode("=> " + result_val_pp);
+                      
+                         answer_text.appendChild(result);
+                      }
+                      var button = document.createElement("button");
+                      button.onclick = append_answer;
+                      button.appendChild(document.createTextNode("get answer"));
+                      result_elt.appendChild(button);
+                      
+                      append_answer();
                       repl.appendChild(result_elt);
 
                       inputbox.contentEditable = false;
                       repl_getline();
                       return false;
-                  } catch (e) { inputbox.appendChild(document.createTextNode("\n")); return true; }
+                  } catch (e) { 
+                      inputbox.appendChild(document.createTextNode("\n")); return true; }
               }
           };
           repl.appendChild(inputbox);

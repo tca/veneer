@@ -72,6 +72,7 @@ function bind($, g) {
 function pull($) {
     return procedurep($) ? pull($()) : $;
 }
+
 function take(n, $) {
     if (n <= 0) {
         return null;
