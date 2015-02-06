@@ -54,11 +54,11 @@
                          answer_text.appendChild(result);
                       }
                       button.onclick = append_answer;
-                      button.appendChild(document.createTextNode("get answer"));
+                      button.appendChild(document.createTextNode("More answers!"));
 
                       result_elt.appendChild(answer_text);
-                      append_answer();
                       result_elt.appendChild(button);
+                      append_answer();
                       repl.appendChild(result_elt);
 
                       inputbox.contentEditable = false;
