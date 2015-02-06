@@ -25,7 +25,7 @@ var mzero = null;
 function unify(u, v, s) {
     var u = walk(u, s);
     var v = walk(v, s);
-    if (varp(u) && varp(v) && vareq) { return s; }
+    if (varp(u) && varp(v) && vareq(u, v)) { return s; }
     else if (varp(u)) { return ext_s(u, v, s); }
     else if (varp(v)) { return ext_s(v, u ,s); }
     else if (pairp(u) && pairp(v)) {
@@ -42,6 +42,7 @@ function call_fresh(f) {
         return f(mkvar(c))(cons(s_c.car, (c + 1)));
     }
 }
+
 function disj(g1, g2) {
     return function(s_c) { return mplus(g1(s_c), g2(s_c)); }
 }

@@ -38,11 +38,10 @@ function Ref(v) {
 function ref(v) { return new Ref(v); }
 
 function assp(pred, xs) {
-    while(true) {
-        if(xs == null) { return false; }
-        else if (pred(xs.car)) { return xs.car; }
+    while(xs != null) {
+        if (pred(xs.car.car)) { return xs.car; }
         else { xs = xs.cdr; }
-    }
+    } return false;
 }
 
 function reverse_aux(lst,memo) {

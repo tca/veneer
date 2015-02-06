@@ -116,7 +116,7 @@ function eval(exp, env) {
 // query a variable form the store
 // if it doesn't exist, return a pretty printed "any"
 function query(v, s) {
-    return assq(v, s).cdr || ["_", v.c].join(".");
+    return assp(function(u) { return vareq(u, v); }, s).cdr || ["_", v.c].join(".");
 }
 
 function map_stream(fn, stream) {

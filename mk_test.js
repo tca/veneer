@@ -28,3 +28,10 @@ var test2 = function(x) {
 var res = conj(call_fresh(test2), call_fresh(sixes))(empty_state);
 
 node_log(assq(fv, take(5, res).car.car));
+
+var x = ref(null);
+var y = ref(null);
+var foo = conj(call_fresh(function(z) { x.set(z); return eqeq(x.get(), y.get()) }),
+               call_fresh(function(z) { y.set(z); return eqeq(y.get(), 1) }));
+
+node_log(take(3, foo(empty_state)));
