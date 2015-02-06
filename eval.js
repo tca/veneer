@@ -45,7 +45,7 @@ function frees(exp, env, fenv) {
         switch(exp.car) {
         case intern("quote"): return exp;
         case intern("cons"):
-           return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
+            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("=="):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("begin"):
@@ -79,35 +79,71 @@ function lift_frees(exp) {
     var free_env = ref(null);
     var exp1 = frees(exp, null, free_env);
     var e1_c1 = foldl(free_env.get(), cons(null, 0),
-                      function(e_c, a) { return cons(cons(cons(a.cdr, mkvar(e_c.cdr)), e_c.car), e_c.cdr+1); });
+                      function(e_c, a) {
+                          var var1 = mkvar(e_c.cdr);
+                          return cons(cons(cons(a.cdr, function(_) { return var1; }), e_c.car), e_c.cdr+1); });
     return list(exp1, e1_c1.car, cons(null ,e1_c1.cdr));
 } 
 
-function eval(exp, env) {
+function eval0(exp, env) {
+    console.log(exp);
     if(pairp(exp)) {
         switch(exp.car) {
-        case intern("quote"): return exp.cdr.car;
-        case intern("cons"): return cons(eval(exp.cdr.car, env), eval(exp.cdr.cdr.car, env));
-        case intern("=="): return eqeq(eval(exp.cdr.car, env), eval(exp.cdr.cdr.car, env));
-        case intern("begin"):
-            if (exp.cdr == null) { throw "error: empty begin"; }
-            else if (exp.cdr.cdr == null) { return eval(exp.cdr.car, env); }
-            else { return conj(eval(exp.cdr.car, env), eval(cons(intern("begin"), exp.cdr.cdr), env)); }
+        case intern("quote"):
+            return function(cenv) { return exp.cdr.car; };
+        case intern("cons"): 
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car);
+            return function(cenv) { return cons(e1(cenv), e2(cenv)); };
+        case intern("=="):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return eqeq(e1(cenv), e2(cenv)); }
+        case intern("conj"):
+            if (exp.cdr == null) { throw "error: empty conj"; }
+            else if (exp.cdr.cdr == null) { return eval0(exp.cdr.car, env); }
+            else {
+                var e1 = eval0(exp.cdr.car, env);
+                var e2 = eval0(cons(intern("conj"), exp.cdr.cdr), env);
+                return function(cenv) { return conj(e1(cenv), e2(cenv)); };
+            }
         case intern("fresh"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
-            return function(s_c) {
-                var e1_c1 = foldl(bindings, cons(env, s_c.cdr),
-                                  function(e_c, a) { return cons(cons(cons(a, mkvar(e_c.cdr)), e_c.car), e_c.cdr+1); });
-                return eval(cons(intern("begin"), body), e1_c1.car)(cons(s_c.car, e1_c1.cdr));
+            // we get the env by adding (var . offset) pairs to it
+            var e1_c1 = foldl(bindings, cons(env, 0),
+                              function(e_c, a) {
+                                  var offset = e_c.cdr;
+                                  var var1 = function(cenv) { return cenv[offset]; }
+                                  return cons(cons(cons(a, var1), e_c.car), offset+1); });
+            // now we have an (env . cenv_size)
+            var env1 = e1_c1.car;
+            var cenv_size = e1_c1.cdr;
+            var body1 = eval0(cons(intern("conj"), body), env1);
+            // adds fresh variables
+            return function(cenv) {
+                return function(s_c) {
+                    var c = s_c.cdr;
+                    // [mkvar(c++), ...]
+                    var m = new Array(cenv_size);
+                    var i;
+                    for(i=0; i < cenv_size; i++) {
+                        m[i] = mkvar(c++);
+                    }
+                    return body1(m)(cons(s_c.car, c));
+                };
             };
         default: throw "unkown exp: " + exp;
         }
     } else if(constantp(exp)) {
-        return exp;
+        return function(cenv) { return exp; };
     } else if(symbolp(exp)) {
         var v = lookup(exp, env);
-        if(v) { return v; } else { throw ["unbound variable: " + exp.string, env]; }
+        if (v) {
+            return v;
+        } else {
+            throw ["unbound variable: " + exp.string, env];
+        }
     } else {
         throw "unkown exp: " + exp;
     }
@@ -132,12 +168,16 @@ function query_stream(init) {
     var exp = init.car;
     var env = init.cdr.car;
     var s_c = init.cdr.cdr.car;
-    var $ = eval(exp, env)(s_c);
+    var foo = eval0(exp, env)([]);
+    console.log(foo);
+    console.log(s_c);
+    var $ = foo(s_c);
 
     var run_queries = function(s_c) { 
         var s = s_c.car;
         var record = new Object(null);
-        map(function(x) { record[x.car.string] = query(x.cdr,s); }, env);
+        console.log(s_c.car);
+        map(function(x) { record[x.car.string] = query(x.cdr(),s); }, env);
         return record;
     };
     return map_stream(run_queries, $);

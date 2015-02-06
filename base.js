@@ -81,6 +81,10 @@ function foldl(xs, m, fn) {
     } return m;
 }
 
+function foldr(xs, m, fn) {
+    return (xs == null) ? m : fn(xs.car, foldr(xs.cdr, m, fn));
+}
+
 function assq(x, xs) {
     while(xs != null) {
         if (x === xs.car.car) { return xs.car; }
