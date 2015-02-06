@@ -144,8 +144,13 @@ function query_stream(init) {
 }
 
 function stream_generator($) {
-    var state;
-    return function() { state = $(); return state.car; };
+    var next = $;
+    return function() {
+        var cur = next();
+        if(cur == null) { return null }
+        else { next = cur.cdr;
+               return cur.car; }
+    };
 }
 
 // TODO: multi-expression programs

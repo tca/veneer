@@ -44,20 +44,21 @@
                       var result_elt = document.createElement("pre");
                       result_elt.className += "result";
                       var answer_text = document.createElement("pre");
-                      result_elt.appendChild(answer_text);
+                      var button = document.createElement("button");
                       var append_answer = function() { 
                          var result_val = generator();
+                         if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
                          var result_val_pp = JSON.stringify(result_val, null, ' ');
-                         var result = document.createTextNode("=> " + result_val_pp);
+                         var result = document.createTextNode("=> " + result_val_pp + "\n");
                       
                          answer_text.appendChild(result);
                       }
-                      var button = document.createElement("button");
                       button.onclick = append_answer;
                       button.appendChild(document.createTextNode("get answer"));
-                      result_elt.appendChild(button);
-                      
+
+                      result_elt.appendChild(answer_text);
                       append_answer();
+                      result_elt.appendChild(button);
                       repl.appendChild(result_elt);
 
                       inputbox.contentEditable = false;
