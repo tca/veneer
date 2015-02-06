@@ -91,7 +91,6 @@ function lift_frees(exp) {
 } 
 
 function eval0(exp, env) {
-    console.log(exp);
     if(pairp(exp)) {
         switch(exp.car) {
         case intern("quote"):
@@ -120,7 +119,6 @@ function eval0(exp, env) {
                 var e2 = eval0(cons(intern("disj"), exp.cdr.cdr), env);
                 return function(cenv) { return disj(e1(cenv), e2(cenv)); };
             }
-            console.log("wat");
         case intern("fresh"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
@@ -163,10 +161,9 @@ function eval0(exp, env) {
     }
 }
 
-// query a variable form the store
-// if it doesn't exist, return a pretty printed "any"
 function query(v, s) {
-    return assp(function(u) { return vareq(u, v); }, s).cdr || ["_", v.c].join(".");
+    var v1 = walk_star(mkvar(0), s);
+    return walk_star(v1, reify_s(v1, null));
 }
 
 function map_stream(fn, stream) {
@@ -183,14 +180,11 @@ function query_stream(init) {
     var env = init.cdr.car;
     var s_c = init.cdr.cdr.car;
     var foo = eval0(exp, env)([]);
-    console.log(foo);
-    console.log(s_c);
     var $ = foo(s_c);
 
     var run_queries = function(s_c) { 
         var s = s_c.car;
         var record = new Object(null);
-        console.log(s_c.car);
         map(function(x) { record[x.car.string] = query(x.cdr(),s); }, env);
         return record;
     };

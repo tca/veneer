@@ -44,6 +44,12 @@ function assp(pred, xs) {
     } return false;
 }
 
+function length(lst) {
+    var memo = 0;
+    while(lst != null) { memo++; lst = lst.cdr  }
+    return memo;
+}
+
 function reverse_aux(lst,memo) {
     while(lst != null) {
         memo = cons(lst.car, memo);

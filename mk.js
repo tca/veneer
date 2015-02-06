@@ -82,3 +82,35 @@ function take(n, $) {
         return ($ == null) ? null : cons($.car, take(n - 1, $.cdr));
     }
 }
+
+function reify_first(s_c) {
+    var v = walk_star(mkvar(0), s_c.car);
+    return walk_star(v, reify_s(v, null));
+}
+
+function walk_star(v, s) {
+    var v1 = walk(v, s);
+    if (varp(v1)) {
+        return v1;
+    } else if (pairp(v1)) {
+        return cons(walk_star(v1.car, s),
+                    walk_star(v1.cdr, s));
+    } else {
+        return v1;
+    }
+}
+
+function reify_s(v, s) {
+    var v1 = walk(v, s);
+    if (varp(v1)) {
+        return cons(cons(v1, reify_name(length(s))), s);
+    } else if (pairp(v1)) {
+        return reify_s(v1.cdr, reify_s(v1.car, s));
+    } else {
+        return s;
+    }
+}
+
+function reify_name(n) {
+    return ["_", n].join(".");
+}
