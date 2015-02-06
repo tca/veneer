@@ -26,6 +26,9 @@ function desugar(exp) {
         switch(exp.car) {
         case intern("quote"): return quote_desugar(exp.cdr.car);
         case intern("quasiquote"): return quasiquote_desugar(exp.cdr.car);
+        case intern("conde"):
+            var clauses = map(function(row) { return cons(intern("conj"), row); }, exp.cdr);
+            return desugar(cons(intern("disj"), clauses));
         default: return cons(desugar(exp.car), desugar(exp.cdr));
         }
     } else {
@@ -48,7 +51,9 @@ function frees(exp, env, fenv) {
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("=="):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("begin"):
+        case intern("conj"):
+            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
+        case intern("disj"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("fresh"):
             var bindings = exp.cdr.car;
@@ -107,6 +112,15 @@ function eval0(exp, env) {
                 var e2 = eval0(cons(intern("conj"), exp.cdr.cdr), env);
                 return function(cenv) { return conj(e1(cenv), e2(cenv)); };
             }
+        case intern("disj"):
+            if (exp.cdr == null) { throw "error: empty conj"; }
+            else if (exp.cdr.cdr == null) { return eval0(exp.cdr.car, env); }
+            else {
+                var e1 = eval0(exp.cdr.car, env);
+                var e2 = eval0(cons(intern("disj"), exp.cdr.cdr), env);
+                return function(cenv) { return disj(e1(cenv), e2(cenv)); };
+            }
+            console.log("wat");
         case intern("fresh"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
