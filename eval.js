@@ -1,7 +1,7 @@
 
 function quote_desugar(exp) {
     if (pairp(exp)) {
-        return list(intern("cons"), quote_desugar(exp.cdr.car), quote_desugar(exp.cdr.cdr));
+        return list(intern("cons"), quote_desugar(exp.car), quote_desugar(exp.cdr));
     } else if (exp == null) {
         return list(intern("quote"), null);
     }else if(constantp(exp)) {
@@ -14,7 +14,7 @@ function quote_desugar(exp) {
 function quasiquote_desugar(exp) {
     if (pairp(exp)) {
         return exp.car === intern("unquote") ?
-            desugar(exp.cdr) :
+            desugar(exp.cdr.car) :
             list(intern("cons"), quasiquote_desugar(exp.car), quasiquote_desugar(exp.cdr));
     } else {
         return desugar(list(intern("quote"), exp));
