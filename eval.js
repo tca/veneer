@@ -162,7 +162,7 @@ function eval0(exp, env) {
 }
 
 function query(v, s) {
-    var v1 = walk_star(mkvar(0), s);
+    var v1 = walk_star(v, s);
     return walk_star(v1, reify_s(v1, null));
 }
 
