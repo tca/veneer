@@ -123,38 +123,45 @@ function eval0(exp, env) {
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
             // we get the env by adding (var . offset) pairs to it
-            var e1_c1 = foldl(bindings, cons(env, 0),
-                              function(e_c, a) {
-                                  var offset = e_c.cdr;
-                                  var var1 = function(cenv) { return cenv[offset]; }
-                                  return cons(cons(cons(a, var1), e_c.car), offset+1); });
+            var env1 = foldl(bindings, env,
+                             function(e_c, a) {
+                                 var offset = e_c.cdr;
+                                 var var1 = function(cenv) { return cenv[offset]; }
+                                 return cons(cons(cons(a, var1), e_c.car), offset+1); });
             // now we have an (env . cenv_size)
-            var env1 = e1_c1.car;
-            var cenv_size = e1_c1.cdr;
+            // var env1 = e1_c1.car;
+            var cenv_size = env1.cdr;
             var body1 = eval0(cons(intern("conj"), body), env1);
             // adds fresh variables
             return function(cenv) {
+                var fl = cenv.length;
                 return function(s_c) {
                     var c = s_c.cdr;
                     // [mkvar(c++), ...]
                     var m = new Array(cenv_size);
                     var i;
-                    for(i=0; i < cenv_size; i++) {
+                    // copy parent env...
+                    // todo: link environments instead of copy
+                    for(i=0; i < fl; i++) {
+                        m[i] = cenv[i];
+                    }
+                    for(i=fl; i < cenv_size; i++) {
                         m[i] = mkvar(c++);
                     }
                     return body1(m)(cons(s_c.car, c));
                 };
             };
-        default: throw "unkown exp: " + exp;
+        default: 
+            throw "unkown exp: " + exp;
         }
     } else if(constantp(exp)) {
         return function(cenv) { return exp; };
     } else if(symbolp(exp)) {
-        var v = lookup(exp, env);
+        var v = lookup(exp, env.car);
         if (v) {
             return v;
         } else {
-            throw ["unbound variable: " + exp.string, env];
+            throw ["unbound variable: " + exp.string, env.car];
         }
     } else {
         throw "unkown exp: " + exp;
@@ -179,7 +186,7 @@ function query_stream(init) {
     var exp = init.car;
     var env = init.cdr.car;
     var s_c = init.cdr.cdr.car;
-    var foo = eval0(exp, env)([]);
+    var foo = eval0(exp, cons(env, 0))([]);
     var $ = foo(s_c);
 
     var run_queries = function(s_c) { 
