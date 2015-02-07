@@ -55,12 +55,18 @@ function frees(exp, env, fenv) {
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("disj"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
+        case intern("rel"):
+            var bindings = exp.cdr.car;
+            var body = exp.cdr.cdr;
+            var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
+            return cons(exp.car, cons(bindings, map(function(x) { return frees(x, e1, fenv); }, body)));
         case intern("fresh"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
             var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
             return cons(exp.car, cons(bindings, map(function(x) { return frees(x, e1, fenv); }, body)));
-        default: throw "unkown exp: " + exp;
+        default:
+            return map(function(x) { return frees(x, env, fenv); }, exp);
         }
     } else if(constantp(exp)) {
         return exp;
@@ -88,7 +94,7 @@ function lift_frees(exp) {
                           var var1 = mkvar(e_c.cdr);
                           return cons(cons(cons(a.cdr, function(_) { return var1; }), e_c.car), e_c.cdr+1); });
     return list(exp1, e1_c1.car, cons(null ,e1_c1.cdr));
-} 
+}
 
 function eval0(exp, env) {
     if(pairp(exp)) {
@@ -151,8 +157,45 @@ function eval0(exp, env) {
                     return body1(m)(cons(s_c.car, c));
                 };
             };
-        default: 
-            throw "unkown exp: " + exp;
+        case intern("rel"):
+            var bindings = exp.cdr.car;
+            var body = exp.cdr.cdr;
+            // we get the env by adding (var . offset) pairs to it
+            var env1 = foldl(bindings, env,
+                             function(e_c, a) {
+                                 var offset = e_c.cdr;
+                                 var var1 = function(cenv) { return cenv[offset]; }
+                                 return cons(cons(cons(a, var1), e_c.car), offset+1); });
+            // now we have an (env . cenv_size)
+            // var env1 = e1_c1.car;
+            var cenv_size = env1.cdr;
+            var body1 = eval0(cons(intern("conj"), body), env1);
+            // adds fresh variables
+            return function(cenv) {
+                return function(args) {
+                    var fl = cenv.length;
+                    // fl .. cenv_size-1 is the fresh variables
+                    return function(s_c) {
+                        var c = s_c.cdr;
+                        // [mkvar(c++), ...]
+                        var m = new Array(cenv_size);
+                        var i;
+                        // copy parent env...
+                        // todo: link environments instead of copy
+                        for(i=0; i < fl; i++) {
+                            m[i] = cenv[i];
+                        }
+                        for(i=fl; i < cenv_size; i++) {
+                            m[i] = mkvar(c++);
+                        }
+                        var i = fl;
+                        var val = foldl(args, body1(m), function(k, a) { return conj(eqeq(a, m[i++]), k); })
+                        return val(cons(s_c.car, c));
+                    };
+                };
+            };
+        default: // application
+            return function(cenv) { return eval0(exp.car, env)(cenv)(map(function(a) { return eval0(a, env)(cenv); }, exp.cdr)) };
         }
     } else if(constantp(exp)) {
         return function(cenv) { return exp; };
