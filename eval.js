@@ -126,50 +126,39 @@ function eval0(exp, env) {
             return function(cenv) { return eqeq(e1(cenv), e2(cenv)); }
         case intern("conj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
-            else if (exp.cdr.cdr == null) { return eval0(exp.cdr.car, env); }
-            else {
+            else if (exp.cdr.cdr == null) {
+                var e1 = eval0(exp.cdr.car, env);
+                return function(cenv) { return function(s_c) { return function() { return e1(cenv)(s_c); }; }; };
+            } else {
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(cons(intern("conj"), exp.cdr.cdr), env);
-                return function(cenv) { return conj(e1(cenv), e2(cenv)); };
+                return function(cenv) { return conj(function(s_c) { return function() { return e1(cenv)(s_c); }; },
+                                                    e2(cenv)); };
             }
         case intern("disj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
-            else if (exp.cdr.cdr == null) { return eval0(exp.cdr.car, env); }
-            else {
+            else if (exp.cdr.cdr == null) {
+                var e1 = eval0(exp.cdr.car, env);
+                return function(cenv) {  return function(s_c) { return function() { return e1(cenv)(s_c); }; }; };
+            } else {
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(cons(intern("disj"), exp.cdr.cdr), env);
-                return function(cenv) { return disj(e1(cenv), e2(cenv)); };
+                return function(cenv) { return disj(function(s_c) { return function() { return e1(cenv)(s_c); }; },
+                                                    e2(cenv)); };
             }
         case intern("fresh"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
-            // we get the env by adding (var . offset) pairs to it
-            var env1 = foldl(bindings, env,
-                             function(e_c, a) {
-                                 var offset = e_c.cdr;
-                                 var var1 = function(cenv) { return cenv[offset]; }
-                                 return cons(cons(cons(a, var1), e_c.car), offset+1); });
-            // now we have an (env . cenv_size)
-            // var env1 = e1_c1.car;
-            var cenv_size = env1.cdr;
-            var body1 = eval0(cons(intern("conj"), body), env1);
-            // adds fresh variables
+            var body1 = eval0(cons(intern("rel"), exp.cdr), env);
+
             return function(cenv) {
-                var fl = cenv.length;
                 return function(s_c) {
-                    var c = s_c.cdr;
-                    // [mkvar(c++), ...]
-                    var m = new Array(cenv_size);
-                    var i;
-                    // copy parent env...
-                    // todo: link environments instead of copy
-                    for(i=0; i < fl; i++) {
-                        m[i] = cenv[i];
-                    }
-                    for(i=fl; i < cenv_size; i++) {
-                        m[i] = mkvar(c++);
-                    }
-                    return body1(m)(cons(s_c.car, c));
+                    // make fresh variables as argument list
+                    var as_c1 = foldl(bindings, cons(null, s_c.cdr), function(as_c, a) {
+                        return cons(cons(mkvar(as_c.cdr), as_c.car), as_c.cdr+1);
+                    });
+                    
+                    return body1(cenv)(as_c1.car)(cons(s_c.car, as_c1.cdr));
                 };
             };
         case intern("rel"):
@@ -190,29 +179,24 @@ function eval0(exp, env) {
                 return function(args) {
                     var fl = cenv.length;
                     // fl .. cenv_size-1 is the fresh variables
-                    return function(s_c) {
-                        var c = s_c.cdr;
-                        // [mkvar(c++), ...]
-                        var m = new Array(cenv_size);
-                        var i;
-                        // copy parent env...
-                        // todo: link environments instead of copy
-                        for(i=0; i < fl; i++) {
-                            m[i] = cenv[i];
-                        }
-                        for(i=fl; i < cenv_size; i++) {
-                            m[i] = mkvar(c++);
-                        }
-                        var i = fl;
-                        var val = foldl(args, body1(m), function(k, a) { return conj(eqeq(a, m[i++]), k); })
-                        return val(cons(s_c.car, c));
-                    };
+                    var m = new Array(cenv_size);
+                    var i;
+                    // copy parent env...
+                    // todo: link environments instead of copy
+                    for(i=0; i < fl; i++) {
+                        m[i] = cenv[i];
+                    }
+                    // add arguments calll them with cenv??
+                    map(function(a) { m[i++] = a; }, args);
+                    return body1(m);
                 };
             };
         default: // application
+            var evald = map(function(e) { return eval0(e, env); }, exp);
+            var fn = evald.car;
+            var args = evald.cdr;
             return function(cenv) {
-                var fn = eval0(exp.car, env);
-                return fn(cenv)(map(function(a) { return eval0(a, env)(cenv); }, exp.cdr));
+                return fn(cenv)(map(function(a) { return a(cenv); }, args));
             };
         }
     } else if(constantp(exp)) {
@@ -260,7 +244,7 @@ function query_stream(init) {
     var foo = eval0(exp, cons(env, 0))([]);
     var $ = foo(s_c);
 
-    var run_queries = function(s_c) { 
+    var run_queries = function(s_c) {
         var s = s_c.car;
         var record = new Object(null);
         map(function(x) { record[x.car.string] = query(x.cdr(),s); }, env);
