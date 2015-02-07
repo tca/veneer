@@ -25,6 +25,12 @@
 
 
     <textarea id="editor" class="editor">
+(define (five-six x)
+  (conde
+    ((== x 5))
+    ((== x 6))
+    ((five-six x))))
+
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
@@ -80,7 +86,9 @@
                       repl_getline();
                       return false;
                   } catch (e) { 
-                      inputbox.appendChild(document.createTextNode("\n")); return true; }
+                      inputbox.appendChild(document.createTextNode("\n"));
+                      throw e;
+                  }
               }
           };
           repl.appendChild(inputbox);
