@@ -266,10 +266,18 @@ function stream_generator($) {
 var toplevel = new Object(null);
 var vm_state = cons(null, mzero);
 
-// TODO: multi-expression programs
-function run_program(p) {
+function run_expression(p) {
     var desugared = desugar(p);
     var lifted = lift_frees(desugared);
     var q$ = query_stream(lifted);
     return stream_generator(q$);
+}
+
+function run_program(p) {
+    var stream;
+    if(p == null) { throw "no program" }
+    while(p != null) {
+        stream = run_expression(p.car);
+        p = p.cdr;
+    } return stream;
 }

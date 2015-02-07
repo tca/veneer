@@ -15,6 +15,15 @@
       .inputbox { white-space: pre-wrap; display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
       .result { white-space: pre-wrap; background-color: #eee; margin:0; padding: 2px 8px; }
       
+      #dump_button {
+         font-size:36pt;
+         position:absolute; right:50%; margin-right:16px;
+         background-color: #eee;
+         border: 3px solid #ccc;
+         padding:.1em .4em;
+         cursor:pointer;
+      }
+      #dump_button:hover { color:#fff;  }
     </style>
     <script type="text/javascript" src="base.js"></script>
     <script type="text/javascript" src="mk.js"></script>
@@ -25,12 +34,6 @@
 
 
     <textarea id="editor" class="editor">
-(define (five-six x)
-  (conde
-    ((== x 5))
-    ((== x 6))
-    ((five-six x))))
-
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
@@ -45,23 +48,26 @@
     (== x `(,head . ,xtail))
     (== z `(,head . ,ztail))
     (appendo xtail y ztail)))))
-</textarea>
 
+(define (five-six x)
+  (conde
+    ((== x 5))
+    ((== x 6))
+    ((five-six x))))
+</textarea>
+    <div id="dump_button">&#8658;</div>
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
       var repl = document.getElementById("repl");
-      function repl_getline() {
-          var inputbox = document.createElement("pre");
-          inputbox.className += "inputbox";
-          inputbox.contentEditable = true;
-          inputbox.onkeypress = function(e) {
-              if (e.keyCode == 13) {
-                  /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
+      var current_input;
+      
+      function load_input(inputbox) {
+      /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
                                                          .replace(/<[p|div]\s/ig, '\n$0') 
                                                          .replace(/(<([^>]+)>)/ig, ""); */
                   var textcontent = inputbox.textContent;
                   try {
-                      var generator = run_program(read_repl(textcontent).car);
+                      var generator = run_program(read_repl(textcontent));
                       var result_elt = document.createElement("pre");
                       result_elt.className += "result";
                       var answer_text = document.createElement("pre");
@@ -89,14 +95,33 @@
                       inputbox.appendChild(document.createTextNode("\n"));
                       throw e;
                   }
+        }
+
+      function repl_getline() {
+          var inputbox = document.createElement("pre");
+          inputbox.className += "inputbox";
+          inputbox.contentEditable = true;
+          inputbox.onkeypress = function(e) {
+              if (e.keyCode == 13) {
+                  return load_input(inputbox);
               }
           };
           repl.appendChild(inputbox);
           inputbox.focus();
+          current_input = inputbox;
           return inputbox;
       }
       
-      var first_line = repl_getline();
+      var dump_button = document.getElementById("dump_button");
+      function load_editor() {
+        var editor_value = document.getElementById("editor").value;
+        toplevel = new Object(null);
+        current_input.innerText = editor_value;
+        load_input(current_input);
+        return false;
+      }
+      dump_button.onclick = load_editor;
+      repl_getline();
       //first_line.innerText = document.getElementById("editor").value;
 </script>
   </body>
