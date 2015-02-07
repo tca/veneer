@@ -23,7 +23,22 @@
   </head>
   <body>
 
+
     <textarea id="editor" class="editor">
+(define (membero x l)
+ (fresh (head tail)
+  (== l `(,head . ,tail))
+  (conde
+   ((== x head))
+   ((membero x tail)))))
+
+(define (appendo x y z)
+ (conde
+  ((== x '()) (== y z))
+  ((fresh (head xtail ytail ztail)
+    (== x `(,head . ,xtail))
+    (== z `(,head . ,ztail))
+    (appendo xtail y ztail)))))
 </textarea>
 
     <div id="repl" class="repl"></div>
@@ -74,7 +89,7 @@
       }
       
       var first_line = repl_getline();
-      first_line.innerText = document.getElementById("editor").value;
+      //first_line.innerText = document.getElementById("editor").value;
 </script>
   </body>
 </html>

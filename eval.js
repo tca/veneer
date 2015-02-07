@@ -24,6 +24,12 @@ function quasiquote_desugar(exp) {
 function desugar(exp) {
     if(pairp(exp)) {
         switch(exp.car) {
+        case intern("define"):
+            if(pairp(exp.cdr.car)) {
+                return list(exp.car, exp.cdr.car.car, cons(intern("rel"), cons(exp.cdr.car.cdr, desugar(exp.cdr.cdr))));
+            } else {
+                return list(exp.car, exp.cdr.car, desugar(exp.cdr.cdr.car));
+            }
         case intern("quote"): return quote_desugar(exp.cdr.car);
         case intern("quasiquote"): return quasiquote_desugar(exp.cdr.car);
         case intern("conde"):
@@ -46,6 +52,11 @@ function lookup(x, xs) {
 function frees(exp, env, fenv) {
     if(pairp(exp)) {
         switch(exp.car) {
+        case intern("define"):
+            var a = exp.cdr.car;
+            toplevel[a.string] = null;
+            // TODO: free variables in definitions?
+            return list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, cons(cons(a, a), null), null));
         case intern("quote"): return exp;
         case intern("cons"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
@@ -71,7 +82,7 @@ function frees(exp, env, fenv) {
     } else if(constantp(exp)) {
         return exp;
     } else if(symbolp(exp)) {
-        if (lookup(exp, env)) { return exp; }
+        if (lookup(exp, env) || toplevel.hasOwnProperty(exp.string)) { return exp; }
         var v = lookup(exp, fenv.get());
         if (v) {
             return v;
@@ -99,11 +110,15 @@ function lift_frees(exp) {
 function eval0(exp, env) {
     if(pairp(exp)) {
         switch(exp.car) {
+        case intern("define"):
+            var result = eval0(exp.cdr.cdr.car, env);
+            toplevel[exp.cdr.car.string] = result;
+            return function(cenv) { return unit; };
         case intern("quote"):
             return function(cenv) { return exp.cdr.car; };
         case intern("cons"): 
             var e1 = eval0(exp.cdr.car, env);
-            var e2 = eval0(exp.cdr.cdr.car);
+            var e2 = eval0(exp.cdr.cdr.car, env);
             return function(cenv) { return cons(e1(cenv), e2(cenv)); };
         case intern("=="):
             var e1 = eval0(exp.cdr.car, env);
@@ -195,7 +210,10 @@ function eval0(exp, env) {
                 };
             };
         default: // application
-            return function(cenv) { return eval0(exp.car, env)(cenv)(map(function(a) { return eval0(a, env)(cenv); }, exp.cdr)) };
+            return function(cenv) {
+                var fn = eval0(exp.car, env);
+                return fn(cenv)(map(function(a) { return eval0(a, env)(cenv); }, exp.cdr));
+            };
         }
     } else if(constantp(exp)) {
         return function(cenv) { return exp; };
@@ -203,6 +221,15 @@ function eval0(exp, env) {
         var v = lookup(exp, env.car);
         if (v) {
             return v;
+        } else if(toplevel.hasOwnProperty(exp.string)) {
+            var mbox = ref(function() {
+                var cache = toplevel[exp.string];
+                mbox.set(function() { return cache; })
+                return cache;
+            });
+            return function(cenv) {
+                var val = mbox.get()();
+                return val(cenv); };
         } else {
             throw ["unbound variable: " + exp.string, env.car];
         }
@@ -210,6 +237,7 @@ function eval0(exp, env) {
         throw "unkown exp: " + exp;
     }
 }
+
 
 function query(v, s) {
     var v1 = walk_star(v, s);
@@ -250,6 +278,9 @@ function stream_generator($) {
                return cur.car; }
     };
 }
+
+var toplevel = new Object(null);
+var vm_state = cons(null, mzero);
 
 // TODO: multi-expression programs
 function run_program(p) {
