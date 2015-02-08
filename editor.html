@@ -3,24 +3,34 @@
 <html>
   <head>
     <title>editor</title>
+<link rel="stylesheet" href="resources/codemirror.css">
+<script src="resources/codemirror.js"></script>
+<script src="resources/matchbrackets.js"></script>
+<script src="resources/closebrackets.js"></script>
+<script src="resources/scheme.js"></script>
     <style type="text/css">
-      body { padding:0; margin: 0; }
+      body { padding:0; margin: 0; font-family:courier, monospace; }
       pre { margin:0; }
       #repl { overflow-y:scroll;  }
       
-      .editor, .repl { height:100vh; width:50%; float:left; font-family:courier, monospace;  margin:0; padding: 0; background-color:#fff; border-width:0;}
+      .editor, .repl { height:100vh; width:50%; float:left;  margin:0; padding: 0; background-color:#fff; border-width:0;}
       .editor { overflow-y:scroll; }
       .repl {  }
+
+      .CodeMirror { height:100vh; width:50%; float:left; overflow-y:scroll; }
+      .CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
+      .CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
 
       .inputbox { white-space: pre-wrap; display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
       .result { white-space: pre-wrap; background-color: #eee; margin:0; padding: 2px 8px; }
       
       #dump_button {
+         z-index:99;
          font-size:36pt;
          position:absolute; right:50%; margin-right:16px;
          background-color: #eee;
          border: 3px solid #ccc;
-         padding:.1em .4em;
+         padding:0 .4em;
          cursor:pointer;
       }
       #dump_button:hover { color:#fff;  }
@@ -61,6 +71,11 @@
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
 function run() {
+     var options = { mode: "scheme",
+                     matchBrackets: true,
+                     autoCloseBrackets: true,
+                     lineNumbers: true };
+      var editor = CodeMirror.fromTextArea(document.getElementById("editor"), options);
       var repl = document.getElementById("repl");
       var current_input =  repl_getline();;
       
@@ -124,10 +139,9 @@ function run() {
       }
       
       var dump_button = document.getElementById("dump_button");
-      var editor = document.getElementById("editor");
 
       var load_editor = function() {
-        var editor_value = editor.value;
+        var editor_value = editor.getValue();
         toplevel = new Object(null);
         current_input.textContent = editor_value;
         load_input(current_input);
