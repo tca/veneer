@@ -30,10 +30,16 @@
     <script type="text/javascript" src="eval.js"></script>
     <script type="text/javascript" src="reader.js"></script>
   </head>
-  <body>
+  <body onload="run()">
 
 
     <textarea id="editor" class="editor">
+(define (five-six x)
+  (conde
+    ((== x 5))
+    ((== x 6))
+    ((five-six x))))
+
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
@@ -49,19 +55,14 @@
     (== z `(,head . ,ztail))
     (appendo xtail y ztail)))))
 
-(define (five-six x)
-  (conde
-    ((== x 5))
-    ((== x 6))
-    ((five-six x))))
-
-(five-six y)
+(appendo left right '(1 2 3 4))
 </textarea>
     <div id="dump_button">&#8658;</div>
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
+function run() {
       var repl = document.getElementById("repl");
-      var current_input;
+      var current_input =  repl_getline();;
       
       function load_input(inputbox) {
       /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
@@ -83,6 +84,7 @@
                          answer_text.appendChild(result);
                          button.focus();
                          button.scrollIntoView();
+                         return false;
                       }
                       button.onclick = append_answer;
                       button.appendChild(document.createTextNode("More answers!"));
@@ -122,16 +124,17 @@
       }
       
       var dump_button = document.getElementById("dump_button");
-      function load_editor() {
-        var editor_value = document.getElementById("editor").value;
+      var editor = document.getElementById("editor");
+
+      var load_editor = function() {
+        var editor_value = editor.value;
         toplevel = new Object(null);
-        current_input.innerText = editor_value;
+        current_input.textContent = editor_value;
         load_input(current_input);
         return false;
       }
       dump_button.onclick = load_editor;
-      repl_getline();
-      //first_line.innerText = document.getElementById("editor").value;
+}
 </script>
   </body>
 </html>
