@@ -51,6 +51,8 @@ function lookup(x, xs) {
 function frees(exp, env, fenv) {
     if(pairp(exp)) {
         switch(exp.car) {
+        case intern("zzz"):
+            return list(exp.car, frees(exp.cdr.car, env, fenv));
         case intern("define"):
             var a = exp.cdr.car;
             toplevel[a.string] = null;
@@ -127,6 +129,9 @@ function lift_frees(exp) {
 function eval0(exp, env) {
     if(pairp(exp)) {
         switch(exp.car) {
+        case intern("zzz"):
+            var x = eval0(exp.cdr.car, env);
+            return function(cenv) { return function(s_c) { return function() { return x(cenv)(s_c); }; }; };
         case intern("define"):
             var result = eval0(exp.cdr.cdr.car, env);
             toplevel[exp.cdr.car.string] = result;
@@ -144,24 +149,22 @@ function eval0(exp, env) {
         case intern("conj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
             else if (exp.cdr.cdr == null) {
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return function(s_c) { return function() { return e1(cenv)(s_c); }; }; };
+                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
+                return e1;
             } else {
-                var e1 = eval0(exp.cdr.car, env);
+                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
                 var e2 = eval0(cons(intern("conj"), exp.cdr.cdr), env);
-                return function(cenv) { return conj(function(s_c) { return function() { return e1(cenv)(s_c); }; },
-                                                    e2(cenv)); };
+                return function(cenv) { return conj(e1(cenv), e2(cenv)); };
             }
         case intern("disj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
             else if (exp.cdr.cdr == null) {
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) {  return function(s_c) { return function() { return e1(cenv)(s_c); }; }; };
+                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
+                return e1;
             } else {
-                var e1 = eval0(exp.cdr.car, env);
+                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
                 var e2 = eval0(cons(intern("disj"), exp.cdr.cdr), env);
-                return function(cenv) { return disj(function(s_c) { return function() { return e1(cenv)(s_c); }; },
-                                                    e2(cenv)); };
+                return function(cenv) { return disj(e1(cenv), e2(cenv)); };
             }
         case intern("fresh"):
             var bindings = reverse(exp.cdr.car);
