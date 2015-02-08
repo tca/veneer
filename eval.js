@@ -42,6 +42,13 @@ function desugar(exp) {
     }
 }
 
+function register_define(exp) {
+    if (pairp(exp) && exp.car == intern("define")) {
+        var a = pairp(exp.cdr.car) ? exp.cdr.car.car : exp.cdr.car;
+        toplevel[a.string] = null;
+    }
+}
+
 function lookup(x, xs) {
     while(xs != null) {
         if (x.string === xs.car.car.string) { return xs.car.cdr; }
@@ -288,6 +295,7 @@ function run_expression(p) {
 function run_program(p) {
     var stream;
     if(p == null) { throw "no program" }
+    map(register_define, p);
     while(p != null) {
         stream = run_expression(p.car);
         p = p.cdr;
