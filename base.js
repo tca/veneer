@@ -124,6 +124,8 @@ function pretty_print(x) {
                 break;
             }
         } return ["(", memo.join(" "), ")"].join("");
+    } else if (typeof x.toString === 'function') {
+        return x.toString()
     } else {
         return x;
     }

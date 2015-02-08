@@ -117,5 +117,5 @@ function reify_s(v, s) {
 }
 
 function reify_name(n) {
-    return ["_", n].join(".");
+    return { toString: function() { return ["_", n].join("."); } };
 }
