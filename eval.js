@@ -253,9 +253,11 @@ function query_stream(init) {
 
     var run_queries = function(s_c) {
         var s = s_c.car;
-        var record = new Object(null);
-        map(function(x) { record[x.car.string] = query(x.cdr()(),s); }, env);
-        return record;
+        var record = [];
+        map(function(x) {
+            record.push([x.car.string, ": ", pretty_print(query(x.cdr()(),s))].join(""));
+        }, env);
+        return record.join("\n");
     };
     return map_stream(run_queries, $);
 }

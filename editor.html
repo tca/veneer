@@ -78,7 +78,7 @@ function run() {
                       var append_answer = function() { 
                          var result_val = generator();
                          if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
-                         var result_val_pp = JSON.stringify(result_val, null, ' ');
+                         var result_val_pp = "Yes.\n" + result_val;
                          var result = document.createTextNode("=> " + result_val_pp + "\n");
                       
                          answer_text.appendChild(result);

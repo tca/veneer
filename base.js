@@ -97,3 +97,34 @@ function assq(x, xs) {
         else { xs = xs.cdr; }
     } return false;
 }
+
+function pretty_print(x) {
+    if (numberp(x)) {
+        return x.toString();
+    } else if (x == null) {
+        return "()";
+    } else if (typeof x == 'string') {
+        return ['"',x ,'"'].join("");
+    } else if (symbolp(x)) {
+        return x.string;
+    } else if (pairp(x)) {
+        var cur = x;
+        var memo = [];
+        while(true) {
+            if(pairp(cur.cdr)) {
+                memo.push(pretty_print(cur.car));
+                cur = cur.cdr;
+            } else if (cur.cdr == null) {
+                memo.push(pretty_print(cur.car));
+                break;
+            } else {
+                memo.push(pretty_print(cur.car));
+                memo.push(".");
+                memo.push(pretty_print(cur.cdr));
+                break;
+            }
+        } return ["(", memo.join(" "), ")"].join("");
+    } else {
+        return x;
+    }
+}
