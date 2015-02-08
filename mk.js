@@ -2,10 +2,10 @@ function Var(c) { this.c = c }
 function mkvar(c) { return new Var(c); } 
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
- 
+
 function walk(u, s) {
     var pr = varp(u) && assp(function(v) { return vareq(u, v); }, s);
-    return pr ? walk(pr.cdr, s) : u;
+    return !(pr === false) ? walk(pr.cdr, s) : u;
 }
  
 function ext_s(x, v, s) {
@@ -15,7 +15,7 @@ function ext_s(x, v, s) {
 function eqeq(u, v) {
     return function(s_c) {
         var s = unify(u, v, s_c.car);
-        return s ? unit(cons(s, s_c.cdr)) : mzero;
+        return !(s === false) ? unit(cons(s, s_c.cdr)) : mzero;
     }
 }
  
@@ -30,7 +30,7 @@ function unify(u, v, s) {
     else if (varp(v)) { return ext_s(v, u ,s); }
     else if (pairp(u) && pairp(v)) {
         var s = unify(u.car, v.car, s);
-        return s && unify(u.cdr, v.cdr, s);
+        return !(s === false) && unify(u.cdr, v.cdr, s);
     } else {
         return (u == v) && s;
     }
@@ -81,6 +81,11 @@ function take(n, $) {
         var $ = pull($);
         return ($ == null) ? null : cons($.car, take(n - 1, $.cdr));
     }
+}
+
+function take_all($) {
+    $ = pull($);
+    return ($ == null) ? null : cons($.car, take_all($.cdr));
 }
 
 function reify_first(s_c) {
