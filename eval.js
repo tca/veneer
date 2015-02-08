@@ -26,7 +26,7 @@ function desugar(exp) {
         switch(exp.car) {
         case intern("define"):
             if(pairp(exp.cdr.car)) {
-                return list(exp.car, exp.cdr.car.car, cons(intern("rel"), cons(exp.cdr.car.cdr, desugar(exp.cdr.cdr))));
+                return list(exp.car, exp.cdr.car.car, cons(intern("lambda"), cons(exp.cdr.car.cdr, desugar(exp.cdr.cdr))));
             } else {
                 return list(exp.car, exp.cdr.car, desugar(exp.cdr.cdr.car));
             }
@@ -67,7 +67,7 @@ function frees(exp, env, fenv) {
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("disj"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("rel"):
+        case intern("lambda"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
             var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
@@ -189,7 +189,7 @@ function eval0(exp, env) {
                     }
                 };
             };
-        case intern("rel"):
+        case intern("lambda"):
             var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
 
