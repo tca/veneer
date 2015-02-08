@@ -150,7 +150,7 @@ function read_hash(input_stream) {
     case "f": return false;
     case "t": return true;
     case "\\": return input_stream.read_char();
-    default: throw { msg: "unknown hash code" };
+    default: throw  "unknown hash code";
     }
 }
 
@@ -190,7 +190,7 @@ function read_top(sexps, input_stream) {
     }
 }
 
-function ReaderError(e) { this.e = e; }
+function ReaderError(msg) { this.msg = msg; }
 function read_program(str) {
     try { return read_top(null, new Stream(str)); }
     catch(err) { throw new ReaderError(err); }
