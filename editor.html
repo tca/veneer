@@ -69,7 +69,7 @@
                                                          .replace(/(<([^>]+)>)/ig, ""); */
                   var textcontent = inputbox.textContent;
                   try {
-                      var generator = run_program(read_repl(textcontent));
+                      var generator = run_program(read_program(textcontent));
                       var result_elt = document.createElement("pre");
                       result_elt.className += "result";
                       var answer_text = document.createElement("pre");
@@ -81,6 +81,8 @@
                          var result = document.createTextNode("=> " + result_val_pp + "\n");
                       
                          answer_text.appendChild(result);
+                         button.focus();
+                         button.scrollIntoView();
                       }
                       button.onclick = append_answer;
                       button.appendChild(document.createTextNode("More answers!"));
@@ -93,9 +95,13 @@
                       inputbox.contentEditable = false;
                       repl_getline();
                       return false;
-                  } catch (e) { 
-                      inputbox.appendChild(document.createTextNode("\n"));
-                      throw e;
+                  } catch (e) {
+                      if(e instanceof ReaderError) {
+                        inputbox.appendChild(document.createTextNode("\n"));
+                        return true;
+                      } else {
+                        throw e;
+                      }
                   }
         }
 
@@ -110,6 +116,7 @@
           };
           repl.appendChild(inputbox);
           inputbox.focus();
+          inputbox.scrollIntoView();
           current_input = inputbox;
           return inputbox;
       }

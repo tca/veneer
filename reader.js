@@ -190,9 +190,8 @@ function read_top(sexps, input_stream) {
     }
 }
 
-var read_repl = function(in_stream) { return read_top(null, new Stream(in_stream)); };
-
-function read_whole_program(str) {
+function ReaderError(e) { this.e = e; }
+function read_program(str) {
     try { return read_top(null, new Stream(str)); }
-    catch(err) { return err.msg; }
+    catch(err) { throw new ReaderError(err); }
 }
