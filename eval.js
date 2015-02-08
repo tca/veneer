@@ -48,7 +48,6 @@ function lookup(x, xs) {
         else { xs = xs.cdr; }
     } return false;
 }
-
 function frees(exp, env, fenv) {
     if(pairp(exp)) {
         switch(exp.car) {
@@ -96,6 +95,23 @@ function frees(exp, env, fenv) {
     }
 }
 
+
+
+// instead of returning a value, it returns a function that fetches a value
+// based on the offset of how far it takes to reach the variable
+// values in the env are expected to be :: offset -> cenv -> value
+function lookup_calc(x, xs) {
+    var n = 0;
+    while(xs != null) {
+        if (x.string === xs.car.car.string) { return xs.car.cdr(n); }
+        else { n++; xs = xs.cdr; }
+    } return false;
+}
+function augment_env(env, name) {
+    var binding = cons(name, function (offset) { return function(cenv) { return cenv[offset]; } });
+    return cons(binding, env);
+}
+
 // returns list(exp, env, s_c)
 function lift_frees(exp) {
     var free_env = ref(null);
@@ -103,7 +119,8 @@ function lift_frees(exp) {
     var e1_c1 = foldl(free_env.get(), cons(null, 0),
                       function(e_c, a) {
                           var var1 = mkvar(e_c.cdr);
-                          return cons(cons(cons(a.cdr, function(_) { return var1; }), e_c.car), e_c.cdr+1); });
+                          var retrieve = function(_) { return function(_) { return var1; }; };
+                          return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr+1); });
     return list(exp1, e1_c1.car, cons(null ,e1_c1.cdr));
 }
 
@@ -147,68 +164,58 @@ function eval0(exp, env) {
                                                     e2(cenv)); };
             }
         case intern("fresh"):
-            var bindings = exp.cdr.car;
+            var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
-            var body1 = eval0(cons(intern("rel"), exp.cdr), env);
+            var env1 = cons(foldl(bindings, env.car, augment_env), env.cdr);
+            var body1 = eval0(cons(intern("conj"), body), env1);
+            var arglen = length(bindings);
 
-            return function(cenv) {
+            return function (cenv) {
                 return function(s_c) {
-                    // make fresh variables as argument list
-                    var as_c1 = foldl(bindings, cons(null, s_c.cdr), function(as_c, a) {
-                        return cons(cons(mkvar(as_c.cdr), as_c.car), as_c.cdr+1);
-                    });
-                    
-                    return body1(cenv)(as_c1.car)(cons(s_c.car, as_c1.cdr));
+                    return function() {
+                        // make fresh variables as argument list
+                        var args1 = new Array(arglen);
+                        var i = 0;
+
+                        var c1 = foldl(bindings, s_c.cdr, function(c, a) {
+                            args1[i++] = mkvar(c);
+                            return c+1;
+                        });
+
+                        return body1(args1.concat(cenv))(cons(s_c.car, c1));
+                    }
                 };
             };
         case intern("rel"):
-            var bindings = exp.cdr.car;
+            var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
-            // we get the env by adding (var . offset) pairs to it
-            var env1 = foldl(bindings, env,
-                             function(e_c, a) {
-                                 var offset = e_c.cdr;
-                                 var var1 = function(cenv) { return cenv[offset]; }
-                                 return cons(cons(cons(a, var1), e_c.car), offset+1); });
-            // now we have an (env . cenv_size)
-            // var env1 = e1_c1.car;
-            var cenv_size = env1.cdr;
+
+            var env1 = cons(foldl(bindings, env.car, augment_env), env.cdr);
             var body1 = eval0(cons(intern("conj"), body), env1);
-            // adds fresh variables
-            return function(cenv) {
-                return function(args) {
-                    var fl = cenv.length;
-                    // fl .. cenv_size-1 is the fresh variables
-                    var m = new Array(cenv_size);
-                    var i;
-                    // copy parent env...
-                    // todo: link environments instead of copy
-                    for(i=0; i < fl; i++) {
-                        m[i] = cenv[i];
-                    }
-                    // add arguments calll them with cenv??
-                    map(function(a) { m[i++] = a; }, args);
-                    return body1(m);
-                };
-            };
+
+            return body1;
         default: // application
-            var evald = map(function(e) { return eval0(e, env); }, exp);
-            var fn = evald.car;
-            var args = evald.cdr;
+            var clos = eval0(exp.car, env);
+            var args = map(function(e) { return eval0(e, env); }, exp.cdr);
+            var arglen = length(args);
             return function(cenv) {
-                return fn(cenv)(map(function(a) { return a(cenv); }, args));
+                var args1 = new Array(arglen);
+                var i = 0;
+                map(function(a) { args1[i++] = a(cenv); }, args);
+                
+                return clos(args1.concat(cenv));
             };
         }
     } else if(constantp(exp)) {
         return function(cenv) { return exp; };
     } else if(symbolp(exp)) {
-        var v = lookup(exp, env.car);
+        var v = lookup_calc(exp, env.car);
         if (v) {
             return v;
         } else if(toplevel.hasOwnProperty(exp.string)) {
             var mbox = ref(function() {
                 var cache = toplevel[exp.string];
-                mbox.set(function() { return cache; })
+                mbox.set(function() { return cache; });
                 return cache;
             });
             return function(cenv) {
@@ -247,7 +254,7 @@ function query_stream(init) {
     var run_queries = function(s_c) {
         var s = s_c.car;
         var record = new Object(null);
-        map(function(x) { record[x.car.string] = query(x.cdr(),s); }, env);
+        map(function(x) { record[x.car.string] = query(x.cdr()(),s); }, env);
         return record;
     };
     return map_stream(run_queries, $);
@@ -257,7 +264,7 @@ function stream_generator($) {
     var next = $;
     return function() {
         var cur = next();
-        if(cur == null) { return null }
+        if(cur == null) { return null; }
         else { next = cur.cdr;
                return cur.car; }
     };
