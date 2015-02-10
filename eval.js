@@ -63,7 +63,6 @@ function frees(exp, env, fenv) {
         case intern("define"):
             var a = exp.cdr.car;
             toplevel[a.string] = null;
-            // TODO: free variables in definitions?
             return list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, cons(cons(a, a), null), null));
         case intern("quote"): return exp;
         case intern("cons"):
@@ -121,7 +120,6 @@ function augment_env(env, name) {
     return cons(binding, env);
 }
 
-// returns list(exp, env, s_c)
 function lift_frees(exp) {
     var free_env = ref(null);
     var exp1 = frees(exp, null, free_env);
@@ -176,14 +174,13 @@ function eval0(exp, env) {
         case intern("fresh"):
             var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
-            var env1 = cons(foldl(bindings, env.car, augment_env), env.cdr);
+            var env1 = foldl(bindings, env, augment_env);
             var body1 = eval0(cons(intern("conj"), body), env1);
             var arglen = length(bindings);
 
             return function (cenv) {
                 return function(s_c) {
                     return function() {
-                        // make fresh variables as argument list
                         var args1 = new Array(arglen);
                         var i = 0;
 
@@ -200,7 +197,7 @@ function eval0(exp, env) {
             var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
 
-            var env1 = cons(foldl(bindings, env.car, augment_env), env.cdr);
+            var env1 = foldl(bindings, env, augment_env);
             var body1 = eval0(cons(intern("conj"), body), env1);
 
             return body1;
@@ -219,7 +216,7 @@ function eval0(exp, env) {
     } else if(constantp(exp)) {
         return function(cenv) { return exp; };
     } else if(symbolp(exp)) {
-        var v = lookup_calc(exp, env.car);
+        var v = lookup_calc(exp, env);
         if (v) {
             return v;
         } else if(toplevel.hasOwnProperty(exp.string)) {
@@ -232,7 +229,7 @@ function eval0(exp, env) {
                 var val = mbox.get()();
                 return val(cenv); };
         } else {
-            throw ["unbound variable: " + exp.string, env.car];
+            throw ["unbound variable: " + exp.string, env];
         }
     } else {
         throw "unkown exp: " + exp;
@@ -258,7 +255,7 @@ function query_stream(init) {
     var exp = init.car;
     var env = init.cdr.car;
     var s_c = init.cdr.cdr.car;
-    var foo = eval0(exp, cons(env, 0))([]);
+    var foo = eval0(exp, env)([]);
     var $ = foo(s_c);
 
     var run_queries = function(s_c) {
