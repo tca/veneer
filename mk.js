@@ -3,6 +3,12 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
 
+function MiniKanrenState(s, c) {
+    this.substitution = s;
+    this.counter = c;
+}
+function Mks(s, c) { return new MiniKanrenState(s,c); }
+
 function walk(u, s) {
     var pr;
     while(true) {
@@ -10,7 +16,7 @@ function walk(u, s) {
         if(pr != false) {
             u = pr.cdr;
         } else {
-            return  u;
+            return u;
         }
     }
 }
@@ -20,13 +26,13 @@ function ext_s(x, v, s) {
 }
  
 function eqeq(u, v) {
-    return function(s_c) {
-        var s = unify(u, v, s_c.car);
-        return s != false ? unit(cons(s, s_c.cdr)) : mzero;
+    return function(mks) {
+        var s = unify(u, v, mks.substitution);
+        return s != false ? unit(Mks(s, mks.counter)) : mzero;
     }
 }
  
-function unit(s_c) { return cons(s_c, mzero); }
+function unit(mks) { return cons(mks, mzero); }
 var mzero = null;
  
 function unify(u, v, s) {
@@ -44,17 +50,17 @@ function unify(u, v, s) {
 }
  
 function call_fresh(f) {
-    return function(s_c) {
-        var c = s_c.cdr;
-        return f(mkvar(c))(cons(s_c.car, (c + 1)));
+    return function(mks) {
+        var c = mks.counter;
+        return f(mkvar(c))(Mks(mks.substitution, (c + 1)));
     }
 }
 
 function disj(g1, g2) {
-    return function(s_c) { return mplus(g1(s_c), g2(s_c)); }
+    return function(mks) { return mplus(g1(mks), g2(mks)); }
 }
 function conj(g1, g2) {
-    return function(s_c) { return bind(g1(s_c), g2); }
+    return function(mks) { return bind(g1(mks), g2); }
 }
  
 function mplus($1, $2) {
@@ -97,8 +103,8 @@ function take_all($) {
     return ($ == null) ? null : cons($.car, take_all($.cdr));
 }
 
-function reify_first(s_c) {
-    var v = walk_star(mkvar(0), s_c.car);
+function reify_first(mks) {
+    var v = walk_star(mkvar(0), mks.substitution);
     return walk_star(v, reify_s(v, null));
 }
 

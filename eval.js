@@ -128,7 +128,7 @@ function lift_frees(exp) {
                           var var1 = mkvar(e_c.cdr);
                           var retrieve = function(_) { return function(_) { return var1; }; };
                           return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr+1); });
-    return list(exp1, e1_c1.car, cons(null ,e1_c1.cdr));
+    return list(exp1, e1_c1.car, Mks(null ,e1_c1.cdr));
 }
 
 function eval0(exp, env) {
@@ -136,7 +136,7 @@ function eval0(exp, env) {
         switch(exp.car) {
         case intern("zzz"):
             var x = eval0(exp.cdr.car, env);
-            return function(cenv) { return function(s_c) { return function() { return x(cenv)(s_c); }; }; };
+            return function(cenv) { return function(mks) { return function() { return x(cenv)(mks); }; }; };
         case intern("define"):
             var result = eval0(exp.cdr.cdr.car, env);
             toplevel[exp.cdr.car.string] = result;
@@ -179,18 +179,16 @@ function eval0(exp, env) {
             var arglen = length(bindings);
 
             return function (cenv) {
-                return function(s_c) {
-                    return function() {
-                        var args1 = new Array(arglen);
-                        var i = 0;
+                return function(mks) {
+                    var args1 = new Array(arglen);
+                    var i = 0;
 
-                        var c1 = foldl(bindings, s_c.cdr, function(c, a) {
-                            args1[i++] = mkvar(c);
-                            return c+1;
-                        });
+                    var c1 = foldl(bindings, mks.counter, function(c, a) {
+                        args1[i++] = mkvar(c);
+                        return c+1;
+                    });
 
-                        return body1(args1.concat(cenv))(cons(s_c.car, c1));
-                    }
+                    return body1(args1.concat(cenv))(Mks(mks.substitution, c1));
                 };
             };
         case intern("lambda"):
@@ -254,12 +252,12 @@ function map_stream(fn, stream) {
 function query_stream(init) {
     var exp = init.car;
     var env = init.cdr.car;
-    var s_c = init.cdr.cdr.car;
+    var mks = init.cdr.cdr.car;
     var foo = eval0(exp, env)([]);
-    var $ = foo(s_c);
+    var $ = foo(mks);
 
-    var run_queries = function(s_c) {
-        var s = s_c.car;
+    var run_queries = function(mks) {
+        var s = mks.substitution;
         var record = [];
         map(function(x) {
             record.push([x.car.string, ": ", pretty_print(query(x.cdr()(),s))].join(""));
