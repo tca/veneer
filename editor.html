@@ -9,22 +9,22 @@
 <script src="resources/closebrackets.js"></script>
 <script src="resources/scheme.js"></script>
     <style type="text/css">
-      body { padding:0; margin: 0; font-family:courier, monospace; }
+      body { padding:0; margin: 0; font-family:courier, monospace; height:100vh; background-color:#ccc }
       pre { margin:0; }
-      #repl { overflow-y:scroll;  }
+
+      #repl { overflow-y:scroll; }
       
-      .editor, .repl { height:100vh; width:50%; float:left;  margin:0; padding: 0; background-color:#fff; border-width:0;}
-      .editor { overflow-y:scroll; }
-      .repl {  }
+      .repl { height:90%; width:50%; float:left;  margin:0; padding: 0; background-color:#f9f9f9; border-width:0;}
  
       .errors { position:absolute; top:.5em; left:.5em; z-index:100; width:46%;  margin:0; padding: 0 2%; background-color:transparent; border-width:0; }
       .error { background-color:#f00; color:#000; }
 
-      .CodeMirror { height:100vh; width:50%; float:left; overflow-y:scroll; }
+      .CodeMirror { height:90%; width:50%; float:left;}
       .CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
       .CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
-
-      .inputbox { white-space: pre-wrap; display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
+      
+      .inputbox:last-child { margin-bottom:1em;  }
+      .inputbox { background-color:#fff; white-space: pre-wrap; display:block; border:1px solid #ccc; min-height:1em; padding:2px 8px; }
       .result { white-space: pre-wrap; background-color: #eee; margin:0; padding: 2px 8px; }
       
       #dump_button {
@@ -37,6 +37,8 @@
          cursor:pointer;
       }
       #dump_button:hover { color:#fff;  }
+      
+      #demos { display:none; }
     </style>
     <script type="text/javascript" src="base.js"></script>
     <script type="text/javascript" src="mk.js"></script>
@@ -45,20 +47,19 @@
   </head>
   <body onload="run()">
     <div id="errors" class="errors"></div>
-
-    <textarea id="editor" class="editor">
-(define (five-six x)
-  (conde
-    ((== x 5))
-    ((== x 6))
-    ((five-six x))))
-
+<div id="head">&nbsp;demos:<select id="demo_picker"></select></div>
+<div id="demos">
+<div class="demo">
+<span class="title">lists</span>
+<textarea class="content">
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
   (conde
    ((== x head))
    ((membero x tail)))))
+
+(membero x '(1 2 3))
 
 (define (appendo x y z)
  (conde
@@ -70,6 +71,55 @@
 
 (appendo left right '(1 2 3 4))
 </textarea>
+</div>
+<div class="demo">
+<span class="title">grammar</span>
+<textarea class="content">
+(define (conso car cdr c) (== `(,car . ,cdr) c))
+
+(define (membero x l)
+ (fresh (head tail)
+  (== l `(,head . ,tail))
+  (conde
+   ((== x head))
+   ((membero x tail)))))
+
+(define (nouno n) (membero n '(cat bat)))
+(define (verbo v) (membero v '(eats)))
+(define (deto d)  (membero d '(the a)))
+
+;; fixed sentence structure
+(define (my-sentenceo s)
+  (fresh (v n1 d1 n2 d2)
+    (verbo v)
+    (nouno n1)
+    (nouno n2)
+    (deto d1)
+    (deto d2)
+    (== s `(,d1 ,n1 ,v ,d2 ,n2))))
+
+(my-sentenceo x)
+
+;; with parameterized structure
+(define (wordo class word)
+ (conde
+  ((== class 'noun) (nouno word))
+  ((== class 'verb) (verbo word))
+  ((== class 'det)  (deto word))))
+
+(define (sentenceo grammar s)
+ (conde ((== grammar '()) (== s '()))
+        ((fresh (g-head s-head
+                 g-tail s-tail)
+           (conso g-head g-tail grammar)
+           (conso s-head s-tail s)
+           (wordo g-head s-head)
+           (sentenceo g-tail s-tail)))))
+
+(sentenceo '(det noun verb det noun) s)
+</textarea>
+</div>
+</div>
     <div id="dump_button">&#8658;</div>
     <div id="repl" class="repl"></div>
     <script type="text/javascript">
@@ -87,8 +137,14 @@ function run() {
      var options = { mode: "scheme",
                      matchBrackets: true,
                      autoCloseBrackets: true,
-                     lineNumbers: true };
-      var editor = CodeMirror.fromTextArea(document.getElementById("editor"), options);
+                     lineNumbers: true};
+      var editor = false;
+      var load_editor = function(ed) {
+        document.body.insertBefore(ed, document.getElementById("repl"));
+        return ed;
+      };
+      editor = new CodeMirror(load_editor, options);
+      //editor.setSize("90%", "50%");
       var repl = document.getElementById("repl");
       var current_input =  repl_getline();;
       
@@ -163,6 +219,21 @@ function run() {
         return false;
       }
       dump_button.onclick = load_editor;
+
+      var demos = document.getElementsByClassName("demo");
+      var picker = document.getElementById("demo_picker");
+      var file_values = new Array(demos.length);
+      for(var i=0; i < demos.length; i++ ) {
+          var selection = document.createElement("option");
+          var name = demos[i].getElementsByClassName("title")[0].textContent;
+          file_values[i] =  demos[i].getElementsByClassName("content")[0].value;
+          selection.value = i;
+          selection.appendChild(document.createTextNode(name));
+          picker.appendChild(selection);
+      }
+      picker.onchange = function() { editor.setValue(file_values[picker.selectedIndex]); };
+      picker.value = "0";
+      editor.setValue(file_values[0]);
 }
 </script>
   </body>
