@@ -4,8 +4,15 @@ function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
 
 function walk(u, s) {
-    var pr = varp(u) && assp(function(v) { return vareq(u, v); }, s);
-    return (pr != false) ? walk(pr.cdr, s) : u;
+    var pr;
+    while(true) {
+        pr = varp(u) && assp(function(v) { return vareq(u, v); }, s);
+        if(pr != false) {
+            u = pr.cdr;
+        } else {
+            return  u;
+        }
+    }
 }
  
 function ext_s(x, v, s) {
@@ -71,7 +78,9 @@ function bind($, g) {
 }
 
 function pull($) {
-    return procedurep($) ? pull($()) : $;
+    while(procedurep($)) {
+        $ = $();
+    } return $;
 }
 
 function take(n, $) {
