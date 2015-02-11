@@ -3,11 +3,12 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
 
-function MiniKanrenState(s, c) {
+function MiniKanrenState(s, c, d) {
     this.substitution = s;
     this.counter = c;
+    this.diseq = d;
 }
-function Mks(s, c) { return new MiniKanrenState(s,c); }
+function Mks(s, c, d) { return new MiniKanrenState(s,c,d); }
 
 function walk(u, s) {
     var pr;
@@ -39,7 +40,14 @@ function ext_s_check(x, v, s) {
 function eqeq(u, v) {
     return function(mks) {
         var s = unify(u, v, mks.substitution);
-        return s != false ? unit(Mks(s, mks.counter)) : mzero;
+        return s != false ? normalize_disequality_store(Mks(s, mks.counter, mks.diseq)) : mzero;
+    }
+}
+
+function noteqeq(u, v) {
+    return function(mks) {
+        var d = disequality(u, v, mks.substitution);
+        return d != false ? unit(Mks(mks.substitution, mks.counter, cons(d,mks.diseq))) : mzero;
     }
 }
  
@@ -59,11 +67,57 @@ function unify(u, v, s) {
         return (u == v) && s;
     }
 }
+
+function subtract_substitution(s_hat, s) {
+    // This function requires that s^ is some stuff consed onto s
+    if(s_hat === s) { // we use === for pointer equality
+        return null;
+    }
+    else {
+        return cons(s_hat.car, subtract_substitution(s_hat.cdr, s));
+    }
+}
+
+function disequality(u, v, s) {
+    var s_hat = unify(u, v, s);
+    if(s_hat != false) {
+        var d = subtract_substitution(s_hat, s);
+        return (d == null) ? false : d;
+    }
+    else {
+        return null;
+    }
+}
+
+function normalize_disequality_store(mks) {
+    var s = mks.substitution;
+    var c = mks.counter;
+    var d = mks.diseq;
+    var dn = null;
+
+    while(d != null) {
+        var es = d.car;
+
+        if(es != null) {
+            d_hat = disequality(map(car, es), map(cdr, es), s);
+            
+            if(d_hat == false) {
+                return mzero;
+            }
+
+            dn = cons(d_hat, dn);
+        }
+        
+        d = d.cdr;
+    }
+
+    return unit(Mks(s, c, dn));
+}
  
 function call_fresh(f) {
     return function(mks) {
         var c = mks.counter;
-        return f(mkvar(c))(Mks(mks.substitution, (c + 1)));
+        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq));
     }
 }
 
