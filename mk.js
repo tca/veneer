@@ -20,9 +20,20 @@ function walk(u, s) {
         }
     }
 }
+
+function occurs_check(x, v, s) {
+    var v = walk(v, s);
+    if(varp(v)) {
+        return vareq(v, x);
+    } else if (pairp(v)) {
+        return occurs_check(x, v.car, s) || occurs_check(x, v.cdr, s);
+    } else {
+        return false;
+    }
+}
  
-function ext_s(x, v, s) {
-    return cons(cons(x, v), s);
+function ext_s_check(x, v, s) {
+    return occurs_check(x, v, s) ? false : cons(cons(x, v), s);
 }
  
 function eqeq(u, v) {
@@ -39,8 +50,8 @@ function unify(u, v, s) {
     var u = walk(u, s);
     var v = walk(v, s);
     if (varp(u) && varp(v) && vareq(u, v)) { return s; }
-    else if (varp(u)) { return ext_s(u, v, s); }
-    else if (varp(v)) { return ext_s(v, u ,s); }
+    else if (varp(u)) { return ext_s_check(u, v, s); }
+    else if (varp(v)) { return ext_s_check(v, u ,s); }
     else if (pairp(u) && pairp(v)) {
         var s = unify(u.car, v.car, s);
         return (s != false) && unify(u.cdr, v.cdr, s);
