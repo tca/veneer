@@ -1,4 +1,3 @@
-
 function quote_desugar(exp) {
     if (pairp(exp)) {
         return list(intern("cons"), quote_desugar(exp.car), quote_desugar(exp.cdr));
@@ -33,8 +32,8 @@ function desugar(exp) {
         case intern("quote"): return quote_desugar(exp.cdr.car);
         case intern("quasiquote"): return quasiquote_desugar(exp.cdr.car);
         case intern("conde"):
-            var clauses = map(function(row) { return cons(intern("conj"), row); }, exp.cdr);
-            return desugar(cons(intern("disj"), clauses));
+            var clauses = map(function(row) { return cons(intern("conj+"), row); }, exp.cdr);
+            return desugar(cons(intern("disj+"), clauses));
         default: return cons(desugar(exp.car), desugar(exp.cdr));
         }
     } else {
@@ -58,29 +57,12 @@ function lookup(x, xs) {
 function frees(exp, env, fenv) {
     if(pairp(exp)) {
         switch(exp.car) {
-        case intern("zzz"):
-            return list(exp.car, frees(exp.cdr.car, env, fenv));
+        // special forms & macros
         case intern("define"):
             var a = exp.cdr.car;
             toplevel[a.string] = null;
             return list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, cons(cons(a, a), null), null));
         case intern("quote"): return exp;
-        case intern("cons"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("=="):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("=/="):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("symbolo"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("numbero"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("absento"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("conj"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
-        case intern("disj"):
-            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("lambda"):
             var bindings = exp.cdr.car;
             var body = exp.cdr.cdr;
@@ -91,17 +73,34 @@ function frees(exp, env, fenv) {
             var body = exp.cdr.cdr;
             var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
             return cons(exp.car, cons(bindings, map(function(x) { return frees(x, e1, fenv); }, body)));
+        case intern("zzz"):
+        case intern("conj+"):
+        case intern("disj+"):
+            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         default:
             return map(function(x) { return frees(x, env, fenv); }, exp);
         }
     } else if(constantp(exp)) {
         return exp;
     } else if(symbolp(exp)) {
+        // bound variables
         if (lookup(exp, env) || toplevel.hasOwnProperty(exp.string)) { return exp; }
-        var v = lookup(exp, fenv.get());
-        if (v) {
-            return v;
-        } else {
+        switch(exp) {
+        // builtins
+        case intern("cons"):
+        case intern("list"):
+        case intern("=="):
+        case intern("=/="):
+        case intern("conj"):
+        case intern("disj"):
+        case intern("symbolo"):
+        case intern("numbero"):
+        case intern("absento"):
+            return exp;
+        // free variables
+        default:
+            var v = fenv && lookup(exp, fenv.get());
+            if (v) { return v; }
             var gen = gensym(exp.string);
             fenv.set(cons(cons(exp, gen), fenv.get()));
             return gen;
@@ -110,8 +109,6 @@ function frees(exp, env, fenv) {
         throw "unkown exp: " + exp;
     }
 }
-
-
 
 // instead of returning a value, it returns a function that fetches a value
 // based on the offset of how far it takes to reach the variable
@@ -123,6 +120,7 @@ function lookup_calc(x, xs) {
         else { n++; xs = xs.cdr; }
     } return false;
 }
+
 function augment_env(env, name) {
     var binding = cons(name, function (offset) { return function(cenv) { return cenv[offset]; } });
     return cons(binding, env);
@@ -142,62 +140,50 @@ function lift_frees(exp) {
 function eval0(exp, env) {
     if(pairp(exp)) {
         switch(exp.car) {
-        case intern("zzz"):
-            var x = eval0(exp.cdr.car, env);
-            return function(cenv) { return function(mks) { return function() { return x(cenv)(mks); }; }; };
         case intern("define"):
             var result = eval0(exp.cdr.cdr.car, env);
             toplevel[exp.cdr.car.string] = result;
             return function(cenv) { return unit; };
         case intern("quote"):
             return function(cenv) { return exp.cdr.car; };
-        case intern("cons"): 
+        case intern("zzz"):
             var e1 = eval0(exp.cdr.car, env);
-            var e2 = eval0(exp.cdr.cdr.car, env);
-            return function(cenv) { return cons(e1(cenv), e2(cenv)); };
-        case intern("=="):
-            var e1 = eval0(exp.cdr.car, env);
-            var e2 = eval0(exp.cdr.cdr.car, env);
-            return function(cenv) { return eqeq(e1(cenv), e2(cenv)); }
-        case intern("=/="):
-            var e1 = eval0(exp.cdr.car, env);
-            var e2 = eval0(exp.cdr.cdr.car, env);
-            return function(cenv) { return noteqeq(e1(cenv), e2(cenv)); }
-        case intern("symbolo"):
-            var e1 = eval0(exp.cdr.car, env);
-            return function(cenv) { return symbolo(e1(cenv)); }
-        case intern("numbero"):
-            var e1 = eval0(exp.cdr.car, env);
-            return function(cenv) { return numbero(e1(cenv)); }
-        case intern("absento"):
-            var e1 = eval0(exp.cdr.car, env);
-            var e2 = eval0(exp.cdr.cdr.car, env);
-            return function(cenv) { return absento(e1(cenv), e2(cenv)); }
-        case intern("conj"):
-            if (exp.cdr == null) { throw "error: empty conj"; }
+            return function(cenv) { return function(mks) { return function() { return e1(cenv)(mks); }; }; };
+        case intern("conj+"):
+            if (exp.cdr == null) { throw "error: empty conj+"; }
             else if (exp.cdr.cdr == null) {
                 var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
                 return e1;
             } else {
-                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
-                var e2 = eval0(cons(intern("conj"), exp.cdr.cdr), env);
-                return function(cenv) { return conj(e1(cenv), e2(cenv)); };
+                var e1 = list(intern("zzz"), exp.cdr.car);
+                var e2 = cons(intern("conj+"), exp.cdr.cdr);
+                return eval0(list(intern("conj"), e1, e2), env);
             }
-        case intern("disj"):
-            if (exp.cdr == null) { throw "error: empty conj"; }
+        case intern("disj+"):
+            if (exp.cdr == null) { throw "error: empty disj+"; }
             else if (exp.cdr.cdr == null) {
                 var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
                 return e1;
             } else {
-                var e1 = eval0(list(intern("zzz"), exp.cdr.car), env);
-                var e2 = eval0(cons(intern("disj"), exp.cdr.cdr), env);
-                return function(cenv) { return disj(e1(cenv), e2(cenv)); };
+                var e1 = list(intern("zzz"), exp.cdr.car);
+                var e2 = cons(intern("disj+"), exp.cdr.cdr);
+                return eval0(list(intern("disj"), e1, e2), env);
+            }
+        case intern("begin"):
+            if (exp.cdr == null) { throw "error: empty begin"; }
+            else if (exp.cdr.cdr == null) {
+                var e1 = eval0(exp.cdr.car, env);
+                return e1;
+            } else {
+                var e1 = eval0(exp.cdr.car, env);
+                var e2 = eval0(cons(intern("begin"), exp.cdr.cdr), env);
+                return function(cenv) { e1(cenv); return e2(cenv); };
             }
         case intern("fresh"):
             var bindings = reverse(exp.cdr.car);
             var body = exp.cdr.cdr;
             var env1 = foldl(bindings, env, augment_env);
-            var body1 = eval0(cons(intern("conj"), body), env1);
+            var body1 = eval0(cons(intern("conj+"), body), env1);
             var arglen = length(bindings);
 
             return function (cenv) {
@@ -218,9 +204,47 @@ function eval0(exp, env) {
             var body = exp.cdr.cdr;
 
             var env1 = foldl(bindings, env, augment_env);
-            var body1 = eval0(cons(intern("conj"), body), env1);
-
+            var body1 = eval0(cons(intern("begin"), body), env1);
+            
             return body1;
+
+        // these are builtin functions that we want to call directly instead of building a cenv
+        case intern("cons"): 
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return cons(e1(cenv), e2(cenv)); };
+        case intern("list"):
+            var args = map(function(e) { return eval0(e, env); }, exp.cdr);
+            return function(cenv) {
+                return map(function(a) { return a(cenv); }, args);
+            };
+        case intern("=="):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return eqeq(e1(cenv), e2(cenv)); }
+        case intern("=/="):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return noteqeq(e1(cenv), e2(cenv)); }
+        case intern("conj"):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr, env);
+            return function(cenv) { return conj(e1(cenv), e2(cenv)); };
+        case intern("disj"):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr, env);
+            return function(cenv) { return disj(e1(cenv), e2(cenv)); };
+        case intern("symbolo"):
+            var e1 = eval0(exp.cdr.car, env);
+            return function(cenv) { return symbolo(e1(cenv)); }
+        case intern("numbero"):
+            var e1 = eval0(exp.cdr.car, env);
+            return function(cenv) { return numbero(e1(cenv)); }
+        case intern("absento"):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return absento(e1(cenv), e2(cenv)); }
+
         default: // application
             var clos = eval0(exp.car, env);
             var args = map(function(e) { return eval0(e, env); }, exp.cdr);
