@@ -75,6 +75,8 @@ function frees(exp, env, fenv) {
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("numbero"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
+        case intern("absento"):
+            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("conj"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("disj"):
@@ -167,6 +169,10 @@ function eval0(exp, env) {
         case intern("numbero"):
             var e1 = eval0(exp.cdr.car, env);
             return function(cenv) { return numbero(e1(cenv)); }
+        case intern("absento"):
+            var e1 = eval0(exp.cdr.car, env);
+            var e2 = eval0(exp.cdr.cdr.car, env);
+            return function(cenv) { return absento(e1(cenv), e2(cenv)); }
         case intern("conj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
             else if (exp.cdr.cdr == null) {
