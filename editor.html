@@ -24,88 +24,15 @@
 <button id="save_file">save file</button></div>
 <div id="demos">
 <div class="demo">
-<span class="title">reasoned schemer prelude</span>
+<span class="title">numbers</span>
 <textarea class="content">
-(define succeed (== #t #t))
-(define fail (== #f #t))
-
-(define caro
-  (lambda (p a)
-    (fresh (d)
-      (== (cons a d) p))))
-
-(define cdro
-  (lambda (p d)
-    (fresh (a)
-      (== (cons a d) p))))
-
-(define conso
-  (lambda (a d p)
-    (== (cons a d) p)))
-
-(define nullo
-  (lambda (x)
-    (== '() x)))
-
-(define eqo
-  (lambda (x y)
-    (== x y)))
-
-(define eq-caro
-  (lambda (l x)
-    (caro l x)))
-
-(define pairo
-  (lambda (p)
-    (fresh (a d)
-      (conso a d p))))
-
-(define listo
-  (lambda (l)
-    (conde
-      ((nullo l) succeed)
-      ((pairo l)
-       (fresh (d)
-         (cdro l d)
-         (listo d))))))
-
-(define membero
-  (lambda (x l)
-    (conde
-      ((nullo l) fail)
-      ((eq-caro l x) succeed)
-      ((fresh (d)
-          (cdro l d)
-          (membero x d))))))
-
-(define rembero  
-  (lambda (x l out)
-    (conde
-      ((nullo l) (== '() out))
-      ((eq-caro l x) (cdro l out))
-      ((fresh (a d res)
-              (conso a d l)
-              (rembero x d res)
-              (conso a res out))))))
-
-(define appendo
-  (lambda (l s out)
-    (conde
-      ((nullo l) (== s out))
-      ((fresh (a d res)
-          (conso a d l)
-          (conso a res out)
-          (appendo d s res))))))
-
-(define anyo
-  (lambda (g)
-    (conde
-      (g succeed)
-      ((anyo g)))))
-
-(define nevero (anyo fail))
-(define alwayso (anyo succeed))
-
+(define (appendo x y z)
+ (conde
+  ((== x '()) (== y z))
+  ((fresh (head xtail ytail ztail)
+    (== x `(,head . ,xtail))
+    (== z `(,head . ,ztail))
+    (appendo xtail y ztail)))))
 
 (define zeroo
   (lambda (n)
