@@ -73,6 +73,8 @@ function frees(exp, env, fenv) {
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("symbolo"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
+        case intern("numbero"):
+            return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("conj"):
             return cons(exp.car, map(function(x) { return frees(x, env, fenv); }, exp.cdr));
         case intern("disj"):
@@ -132,7 +134,7 @@ function lift_frees(exp) {
                           var var1 = mkvar(e_c.cdr);
                           var retrieve = function(_) { return function(_) { return var1; }; };
                           return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr+1); });
-    return list(exp1, e1_c1.car, Mks(null ,e1_c1.cdr, null, null));
+    return list(exp1, e1_c1.car, Mks(null ,e1_c1.cdr, null, null, null));
 }
 
 function eval0(exp, env) {
@@ -162,6 +164,9 @@ function eval0(exp, env) {
         case intern("symbolo"):
             var e1 = eval0(exp.cdr.car, env);
             return function(cenv) { return symbolo(e1(cenv)); }
+        case intern("numbero"):
+            var e1 = eval0(exp.cdr.car, env);
+            return function(cenv) { return numbero(e1(cenv)); }
         case intern("conj"):
             if (exp.cdr == null) { throw "error: empty conj"; }
             else if (exp.cdr.cdr == null) {
@@ -199,7 +204,7 @@ function eval0(exp, env) {
                         return c+1;
                     });
 
-                    return body1(args1.concat(cenv))(Mks(mks.substitution, c1, mks.diseq, mks.symbols));
+                    return body1(args1.concat(cenv))(Mks(mks.substitution, c1, mks.diseq, mks.symbols, mks.numbers));
                 };
             };
         case intern("lambda"):

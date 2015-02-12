@@ -3,13 +3,14 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c == x2.c };
 
-function MiniKanrenState(s, c, d, sy) {
+function MiniKanrenState(s, c, d, sy, nm) {
     this.substitution = s;
     this.counter = c;
     this.diseq = d;
     this.symbols = sy;
+    this.numbers = nm;
 }
-function Mks(s, c, d, sy) { return new MiniKanrenState(s,c,d,sy); }
+function Mks(s, c, d, sy, nm) { return new MiniKanrenState(s,c,d,sy,nm); }
 
 function walk(u, s) {
     var pr;
@@ -41,20 +42,26 @@ function ext_s_check(x, v, s) {
 function eqeq(u, v) {
     return function(mks) {
         var s = unify(u, v, mks.substitution);
-        return s != false ? normalize_disequality_store(Mks(s, mks.counter, mks.diseq, mks.symbols)) : mzero;
+        return s != false ? normalize_disequality_store(Mks(s, mks.counter, mks.diseq, mks.symbols, mks.numbers)) : mzero;
     }
 }
 
 function noteqeq(u, v) {
     return function(mks) {
         var d = disequality(u, v, mks.substitution);
-        return d != false ? unit(Mks(mks.substitution, mks.counter, cons(d,mks.diseq), mks.symbols)) : mzero;
+        return d != false ? unit(Mks(mks.substitution, mks.counter, cons(d,mks.diseq), mks.symbols, mks.numbers)) : mzero;
     }
 }
 
 function symbolo(s) {
     return function(mks) {
-        return normalize_disequality_store(Mks(mks.substitution, mks.counter, mks.diseq, cons(s, mks.symbols)));
+        return normalize_disequality_store(Mks(mks.substitution, mks.counter, mks.diseq, cons(s, mks.symbols), mks.numbers));
+    }
+}
+
+function numbero(s) {
+    return function(mks) {
+        return normalize_disequality_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, cons(s, mks.numbers)));
     }
 }
 
@@ -103,6 +110,8 @@ function normalize_disequality_store(mks) {
     var dn = null;
     var sy = mks.symbols;
     var syn = null;
+    var nm = mks.numbers;
+    var nmn = null;
 
     while(sy != null) {
         var i = walk(sy.car, s);
@@ -112,6 +121,24 @@ function normalize_disequality_store(mks) {
             syn = cons(i, syn);
         }
         else if(symbolp(i)) {
+            continue;
+        }
+        else {
+            return mzero;
+        }
+    }
+    
+    while(nm != null) {
+        var i = walk(nm.car, s);
+        nm = nm.cdr;
+        
+        if (varp(i)) {
+            if(anyp(function(j){return vareq(j,i)}, syn)) {
+                return mzero;
+            }
+            nmn = cons(i, nmn);
+        }
+        else if(numberp(i)) {
             continue;
         }
         else {
@@ -135,13 +162,13 @@ function normalize_disequality_store(mks) {
         d = d.cdr;
     }
 
-    return unit(Mks(s, c, dn, syn));
+    return unit(Mks(s, c, dn, syn, nmn));
 }
  
 function call_fresh(f) {
     return function(mks) {
         var c = mks.counter;
-        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.symbols));
+        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.symbols, mks.numbers));
     }
 }
 

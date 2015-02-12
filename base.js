@@ -37,6 +37,13 @@ function Ref(v) {
 
 function ref(v) { return new Ref(v); }
 
+function anyp(pred, xs) {
+    while(xs != null) {
+        if (pred(xs.car)) { return xs.car; }
+        else { xs = xs.cdr; }
+    } return false;
+}
+
 function assp(pred, xs) {
     while(xs != null) {
         if (pred(xs.car.car)) { return xs.car; }
