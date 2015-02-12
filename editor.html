@@ -27,14 +27,13 @@
 <span class="title">relational interpreter</span>
 <textarea class="content">
 ;; relational scheme interpreter
-;; (currently without symbolo or absento)
 
 (define lookupo
   (lambda (x env out)
     (fresh (y val env^)
       (== `((,y . ,val) . ,env^) env)
-      ;(symbolo x)
-      ;(symbolo y)
+      (symbolo x)
+      (symbolo y)
       (conde
         ((== x y) (== val out))
         ((=/= x y) (lookupo x env^ out))))))
@@ -43,7 +42,7 @@
 (define unboundo
   (lambda (x env)
     (fresh ()
-      ;(symbolo x)
+      (symbolo x)
       (conde
         ((== '() env))
         ((fresh (y v env^)
@@ -56,11 +55,25 @@
   (lambda (expr env out)
     (fresh ()
       (conde
-        (;(symbolo expr) ;; variable
+        ((symbolo expr) ;; variable
          (lookupo expr env out))
         ((== `(quote ,out) expr)
-         ;(absento 'closure out)
+         (absento 'closure out)
          (unboundo 'quote env))
+        ((fresh (x body) ;; abstraction
+           (== `(lambda (,x) ,body) expr)
+           (== `(closure ,x ,body ,env) out)
+           (symbolo x)
+           (unboundo 'lambda env)))
+        ((fresh (expr*)
+           (== `(list . ,expr*) expr)
+           (unboundo 'list env)
+           (eval-exp*o expr* env out)))
+        ((fresh (e1 e2 val x body env^) ;; application
+           (== `(,e1 ,e2) expr)
+           (eval-expo e1 env `(closure ,x ,body ,env^))
+           (eval-expo e2 env val)
+           (eval-expo body `((,x . ,val) . ,env^) out)))
         ((fresh (e1 e2 v1 v2)
            (== `(cons ,e1 ,e2) expr)
            (== `(,v1 . ,v2) out)
@@ -88,21 +101,7 @@
            (eval-expo t env b)
            (conde
              ((== #f b) (eval-expo a env out))
-             ((=/= #f b) (eval-expo c env out)))))
-        ((fresh (expr*)
-           (== `(list . ,expr*) expr)
-           (unboundo 'list env)
-           (eval-exp*o expr* env out)))
-        ((fresh (x body) ;; abstraction
-           (== `(lambda (,x) ,body) expr)
-           (== `(closure ,x ,body ,env) out)
-           ;;(symbolo x)
-           (unboundo 'lambda env)))
-        ((fresh (e1 e2 val x body env^) ;; application
-           (== `(,e1 ,e2) expr)
-           (eval-expo e1 env `(closure ,x ,body ,env^))
-           (eval-expo e2 env val)
-           (eval-expo body `((,x . ,val) . ,env^) out)))))))
+             ((=/= #f b) (eval-expo c env out)))))))))
 
 (define eval-exp*o
   (lambda (expr* env out)
