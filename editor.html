@@ -24,88 +24,124 @@
 <button id="save_file">save file</button></div>
 <div id="demos">
 <div class="demo">
-<span class="title">reasoned schemer prelude</span>
+<span class="title">relational interpreter</span>
 <textarea class="content">
-(define succeed (== #t #t))
-(define fail (== #f #t))
+;; relational scheme interpreter
+;; (currently without symbolo or absento)
 
-(define caro
-  (lambda (p a)
-    (fresh (d)
-      (== (cons a d) p))))
+(define lookupo
+  (lambda (x env out)
+    (fresh (y val env^)
+      (== `((,y . ,val) . ,env^) env)
+      ;(symbolo x)
+      ;(symbolo y)
+      (conde
+        ((== x y) (== val out))
+        ((=/= x y) (lookupo x env^ out))))))
 
-(define cdro
-  (lambda (p d)
-    (fresh (a)
-      (== (cons a d) p))))
 
-(define conso
-  (lambda (a d p)
-    (== (cons a d) p)))
+(define unboundo
+  (lambda (x env)
+    (fresh ()
+      ;(symbolo x)
+      (conde
+        ((== '() env))
+        ((fresh (y v env^)
+           (== `((,y . ,v) . ,env^) env)
+           (=/= x y)
+           (unboundo x env^)))))))
 
-(define nullo
-  (lambda (x)
-    (== '() x)))
 
-(define eqo
-  (lambda (x y)
-    (== x y)))
+(define eval-expo
+  (lambda (expr env out)
+    (fresh ()
+      (conde
+        (;(symbolo expr) ;; variable
+         (lookupo expr env out))
+        ((== `(quote ,out) expr)
+         ;(absento 'closure out)
+         (unboundo 'quote env))
+        ((fresh (e1 e2 v1 v2)
+           (== `(cons ,e1 ,e2) expr)
+           (== `(,v1 . ,v2) out)
+           (unboundo 'cons env)
+           (eval-expo e1 env v1)
+           (eval-expo e2 env v2)))
+        ((fresh (e v2)
+           (== `(car ,e) expr)
+           (unboundo 'car env)
+           (eval-expo e env `(,out . ,v2))))
+        ((fresh (e v1)
+           (== `(cdr ,e) expr)
+           (unboundo 'cdr env)
+           (eval-expo e env `(,v1 . ,out))))
+        ((fresh (e v)
+           (== `(null? ,e) expr)
+           (conde
+             ((== '() v) (== #t out))
+             ((=/= '() v) (== #f out)))
+           (unboundo 'null? env)
+           (eval-expo e env v)))
+        ((fresh (t c a b)
+           (== `(if ,t ,c ,a) expr)
+           (unboundo 'if env)
+           (eval-expo t env b)
+           (conde
+             ((== #f b) (eval-expo a env out))
+             ((=/= #f b) (eval-expo c env out)))))
+        ((fresh (expr*)
+           (== `(list . ,expr*) expr)
+           (unboundo 'list env)
+           (eval-exp*o expr* env out)))
+        ((fresh (x body) ;; abstraction
+           (== `(lambda (,x) ,body) expr)
+           (== `(closure ,x ,body ,env) out)
+           ;;(symbolo x)
+           (unboundo 'lambda env)))
+        ((fresh (e1 e2 val x body env^) ;; application
+           (== `(,e1 ,e2) expr)
+           (eval-expo e1 env `(closure ,x ,body ,env^))
+           (eval-expo e2 env val)
+           (eval-expo body `((,x . ,val) . ,env^) out)))))))
 
-(define eq-caro
-  (lambda (l x)
-    (caro l x)))
-
-(define pairo
-  (lambda (p)
-    (fresh (a d)
-      (conso a d p))))
-
-(define listo
-  (lambda (l)
+(define eval-exp*o
+  (lambda (expr* env out)
     (conde
-      ((nullo l) succeed)
-      ((pairo l)
-       (fresh (d)
-         (cdro l d)
-         (listo d))))))
+      ((== '() expr*) (== '() out))
+      ((fresh (a d res-a res-d)
+         (== (cons a d) expr*)
+         (== (cons res-a res-d) out)
+         (eval-expo a env res-a)
+         (eval-exp*o d env res-d))))))
 
-(define membero
-  (lambda (x l)
-    (conde
-      ((nullo l) fail)
-      ((eq-caro l x) succeed)
-      ((fresh (d)
-          (cdro l d)
-          (membero x d))))))
+;; running append in reverse
+(eval-expo `((((lambda (f)
+                 ((lambda (x)
+                    (f (x x)))
+                  (lambda (x)
+                    (lambda (y) ((f (x x)) y)))))
+               (lambda (my-append)
+                 (lambda (l)
+                   (lambda (s)
+                     (if (null? l)
+                         s
+                         (cons (car l) ((my-append (cdr l)) s)))))))
+              (quote ,x))
+             (quote ,y)) '() '(a b c d e))
+</textarea>
+</div>
+<div class="demo">
+<span class="title">numbers</span>
+<textarea class="content">
+;; number relations based on "oleg numbers"
 
-(define rembero  
-  (lambda (x l out)
-    (conde
-      ((nullo l) (== '() out))
-      ((eq-caro l x) (cdro l out))
-      ((fresh (a d res)
-              (conso a d l)
-              (rembero x d res)
-              (conso a res out))))))
-
-(define appendo
-  (lambda (l s out)
-    (conde
-      ((nullo l) (== s out))
-      ((fresh (a d res)
-          (conso a d l)
-          (conso a res out)
-          (appendo d s res))))))
-
-(define anyo
-  (lambda (g)
-    (conde
-      (g succeed)
-      ((anyo g)))))
-
-(define nevero (anyo fail))
-(define alwayso (anyo succeed))
-
+(define (appendo x y z)
+ (conde
+  ((== x '()) (== y z))
+  ((fresh (head xtail ytail ztail)
+    (== x `(,head . ,xtail))
+    (== z `(,head . ,ztail))
+    (appendo xtail y ztail)))))
 
 (define zeroo
   (lambda (n)
@@ -389,12 +425,15 @@
   (lambda (b q n)
     (logo n b q '())))
 
+;; factor the number 420 by running multiplication backwards!
 (*o x y '(0 0 1 0 0 1 0 1 1))
 </textarea>
 </div>
 <div class="demo">
 <span class="title">lists</span>
 <textarea class="content">
+;; basic list relations
+
 (define (membero x l)
  (fresh (head tail)
   (== l `(,head . ,tail))
@@ -418,6 +457,8 @@
 <div class="demo">
 <span class="title">grammar</span>
 <textarea class="content">
+;; constructing sentences using relations
+
 (define (conso car cdr c) (== `(,car . ,cdr) c))
 
 (define (membero x l)
