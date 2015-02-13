@@ -9,6 +9,7 @@
     <script src="resources/closebrackets.js"></script>
     <script src="resources/scheme.js"></script>
     <link rel="stylesheet" href="editor.css"></style>
+    <script src="mori.js" type="text/javascript"></script>
     <script type="text/javascript" src="base.js"></script>
     <script type="text/javascript" src="mk.js"></script>
     <script type="text/javascript" src="eval.js"></script>
@@ -127,6 +128,39 @@
                          (cons (car l) ((my-append (cdr l)) s)))))))
               (quote ,x))
              (quote ,y)) '() '(a b c d e))
+</textarea>
+</div>
+<div class="demo">
+<span class="title">type inference</span>
+<textarea class="content">
+(define (conso a d p) (== p `(,a . ,d)))
+
+(define (contexto v t gamma)
+  (conde
+   ((fresh (_)
+      (conso `(,v . ,t) _ gamma)))
+   ((fresh (head-v head-t tail)
+      (conso `(,head-v . ,head-t) tail gamma)
+      (=/= v head-v)
+      (contexto v t tail)))))
+
+(define (typeo gamma v t)
+  (conde
+   ((symbolo v)
+    (contexto v t gamma))
+   ((fresh (m n)
+      (== `(,m ,n) v)
+      (fresh (s)
+        (typeo gamma m `(-> ,s ,t))
+        (typeo gamma n s))))
+   ((fresh (x m)
+      (== v `(lam (,x) ,m))
+      (symbolo x)
+      (fresh (a b)
+        (== t `(-> ,a ,b))
+        (typeo `((,x . ,a) . ,gamma) m b))))))
+
+(typeo g '((lam (x) x) z) t)
 </textarea>
 </div>
 <div class="demo">
