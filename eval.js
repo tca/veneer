@@ -96,6 +96,7 @@ function frees(exp, env, fenv) {
         case intern("symbolo"):
         case intern("numbero"):
         case intern("absento"):
+        case intern("eval"):
             return exp;
         // free variables
         default:
@@ -244,6 +245,9 @@ function eval0(exp, env) {
             var e1 = eval0(exp.cdr.car, env);
             var e2 = eval0(exp.cdr.cdr.car, env);
             return function(cenv) { return absento(e1(cenv), e2(cenv)); }
+        case intern("eval"):
+            var e1 = eval0(exp.cdr.car, env);
+            return function(cenv) { return veval(e1(cenv), null); };
 
         default: // application
             var clos = eval0(exp.car, env);
@@ -280,6 +284,9 @@ function eval0(exp, env) {
     }
 }
 
+function veval(exp, env) {
+    return eval0(exp, env)([]);
+}
 
 function query(v, s) {
     var v1 = walk_star(v, s);
@@ -299,7 +306,7 @@ function query_stream(init) {
     var exp = init.car;
     var env = init.cdr.car;
     var mks = init.cdr.cdr.car;
-    var foo = eval0(exp, env)([]);
+    var foo = veval(exp, env);
     var $ = foo(mks);
 
     var run_queries = function(mks) {
