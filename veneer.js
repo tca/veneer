@@ -82,6 +82,7 @@ function Veneer_v1() {
             }
         }
 
+       
         function repl_getline() {
             var inputbox = document.createElement("pre");
             inputbox.className += "inputbox";
@@ -91,6 +92,7 @@ function Veneer_v1() {
                     return load_input(inputbox);
                 }
             };
+
             repl.appendChild(inputbox);
             inputbox.focus();
             inputbox.scrollIntoView();
@@ -108,6 +110,11 @@ function Veneer_v1() {
         }
         dump_button.onclick = dump_editor;
 
+        var shift = false;
+
+        editor.setOption("extraKeys", {
+            "Shift-Enter": function(cm) { dump_editor();}
+        });
 
         return { editor: editor, repl: repl, errors: errors, dump_button: dump_button };
     };
