@@ -56,7 +56,8 @@ function Veneer_v1() {
                     
                     answer_text.appendChild(result);
                     button.focus();
-                    button.scrollIntoView();
+                    current_input.scrollIntoView(false);
+
                     return false;
                 }
                 button.onclick = append_answer;
@@ -95,7 +96,6 @@ function Veneer_v1() {
 
             repl.appendChild(inputbox);
             inputbox.focus();
-            inputbox.scrollIntoView();
             current_input = inputbox;
             return inputbox;
         }
