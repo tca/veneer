@@ -1,4 +1,16 @@
 function load_editor() {
+    var veneer = new Veneer_v1();
+
+    var vm = veneer.new_vm();
+
+    var repl = document.getElementById("repl");
+    var current_input = repl_getline();
+
+    var editor = veneer.new_editor(function(ed) {
+        document.body.insertBefore(ed, repl);
+        return ed;
+    });
+
     var errors = document.getElementById("errors");
     function display_error(e) {
         var error = document.createElement("div");
@@ -9,27 +21,16 @@ function load_editor() {
         setTimeout(function() { errors.removeChild(error); }, 3000);
     }
 
-    var options = { mode: "scheme",
-                    matchBrackets: true,
-                    autoCloseBrackets: true,
-                    lineNumbers: true};
-    var editor = false;
-    var load_editor = function(ed) {
-        document.body.insertBefore(ed, document.getElementById("repl"));
-        return ed;
-    };
-    editor = new CodeMirror(load_editor, options);
-    //editor.setSize("90%", "50%");
-    var repl = document.getElementById("repl");
-    var current_input =  repl_getline();;
+
     
     function load_input(inputbox) {
+        inputbox = current_input;
         /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
            .replace(/<[p|div]\s/ig, '\n$0') 
            .replace(/(<([^>]+)>)/ig, ""); */
         var textcontent = inputbox.textContent;
         try {
-            var generator = run_program(read_program(textcontent));
+            var generator = vm.read_eval(textcontent);
             var result_elt = document.createElement("pre");
             result_elt.className += "result";
             var answer_text = document.createElement("pre");
@@ -86,14 +87,14 @@ function load_editor() {
     
     var dump_button = document.getElementById("dump_button");
 
-    var load_editor = function() {
+    var dump_editor = function() {
         var editor_value = editor.getValue();
-        toplevel = new Object(null);
+        vm.reset();
         current_input.textContent = editor_value;
         load_input(current_input);
         return false;
     }
-    dump_button.onclick = load_editor;
+    dump_button.onclick = dump_editor;
 
     var loaded_file = false;
     function setEditorValue(val) {

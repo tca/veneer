@@ -1,0 +1,3 @@
+.CodeMirror {  }
+.CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
+.CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }

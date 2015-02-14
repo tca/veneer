@@ -10,6 +10,8 @@ pre { margin:0; }
 
 #repl { overflow-y:scroll; }
 
+.CodeMirror { height:90%; width:50%; float:left; }
+
 .repl {
     height:90%; 
     width:50%;
@@ -32,10 +34,6 @@ pre { margin:0; }
 }
 
 .error { background-color:#f00; color:#000; }
-
-.CodeMirror { height:90%; width:50%; float:left;}
-.CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
-.CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
 
 .inputbox:last-child { margin-bottom:1em; }
 
