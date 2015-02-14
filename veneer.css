@@ -6,6 +6,8 @@
 .clear { clear:both; margin:0; padding:0; border-width:0; visibility:hidden; }
 
 .repl {
+    font-family: monospace, courier;
+    font-size:13px;
     float:left; 
     height:100%;
     width:50%;
@@ -42,8 +44,8 @@
 
 .result { 
     white-space: pre-wrap;
-    background-color:
-    #eee; margin:0;
+    background-color: #eee;
+    margin:0;
     padding: 2px 8px; 
 }
 

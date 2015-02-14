@@ -44,9 +44,9 @@ function Veneer_v1() {
             var textcontent = inputbox.textContent;
             try {
                 var generator = vm.read_eval(textcontent);
-                var result_elt = document.createElement("pre");
+                var result_elt = document.createElement("div");
                 result_elt.className += "result";
-                var answer_text = document.createElement("pre");
+                var answer_text = document.createElement("div");
                 var button = document.createElement("button");
                 var append_answer = function(focus) { 
                     var result_val = generator();
