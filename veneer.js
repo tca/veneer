@@ -48,24 +48,26 @@ function Veneer_v1() {
                 result_elt.className += "result";
                 var answer_text = document.createElement("pre");
                 var button = document.createElement("button");
-                var append_answer = function() { 
+                var append_answer = function(focus) { 
                     var result_val = generator();
                     if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
                     var result_val_pp = "Yes.\n" + result_val;
                     var result = document.createTextNode("=> " + result_val_pp + "\n");
                     
                     answer_text.appendChild(result);
-                    button.focus();
-                    current_input.scrollIntoView(false);
+                    if(focus) {
+                        button.focus();
+                        current_input.scrollIntoView(false);
+                    }
 
                     return false;
                 }
-                button.onclick = append_answer;
+                button.onclick = function() { return append_answer(true); };
                 button.appendChild(document.createTextNode("More answers!"));
 
                 result_elt.appendChild(answer_text);
                 result_elt.appendChild(button);
-                append_answer();
+                append_answer(false);
                 repl.appendChild(result_elt);
 
                 inputbox.contentEditable = false;
