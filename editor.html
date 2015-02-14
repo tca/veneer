@@ -2,23 +2,24 @@
 
 <html>
   <head>
-    <title>editor</title>
     <link rel="stylesheet" href="resources/codemirror.css">
     <script src="resources/codemirror.js"></script>
     <script src="resources/matchbrackets.js"></script>
     <script src="resources/closebrackets.js"></script>
     <script src="resources/scheme.js"></script>
     <link rel="stylesheet" href="veneer.css"></style>
-    <link rel="stylesheet" href="editor.css"></style>
+
     <script type="text/javascript" src="base.js"></script>
     <script type="text/javascript" src="mk.js"></script>
     <script type="text/javascript" src="eval.js"></script>
     <script type="text/javascript" src="reader.js"></script>
     <script type="text/javascript" src="veneer.js"></script>
+
+    <link rel="stylesheet" href="editor.css"></style>
     <script type="text/javascript" src="editor.js"></script>
+    <title>editor</title>
   </head>
   <body onload="load_editor()">
-    <div id="errors" class="errors"></div>
 <div id="head">
 &nbsp;demos:<select id="demo_picker"></select>
 &nbsp;saved files:<select id="localstorage_picker"></select>
@@ -538,7 +539,7 @@
 </textarea>
 </div>
 </div>
-    <div id="dump_button">&#8658;</div>
-    <div id="repl" class="repl"></div>
+<div id="container">
+</div>
   </body>
 </html>

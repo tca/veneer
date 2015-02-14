@@ -3,98 +3,11 @@ function load_editor() {
 
     var vm = veneer.new_vm();
 
-    var repl = document.getElementById("repl");
-    var current_input = repl_getline();
-
-    var editor = veneer.new_editor(function(ed) {
-        document.body.insertBefore(ed, repl);
-        return ed;
-    });
-
-    var errors = document.getElementById("errors");
-    function display_error(e) {
-        var error = document.createElement("div");
-        var error_txt = document.createTextNode(e);
-        error.className += "error";
-        error.appendChild(error_txt);
-        errors.appendChild(error);
-        setTimeout(function() { errors.removeChild(error); }, 3000);
-    }
-
-
-    
-    function load_input(inputbox) {
-        inputbox = current_input;
-        /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
-           .replace(/<[p|div]\s/ig, '\n$0') 
-           .replace(/(<([^>]+)>)/ig, ""); */
-        var textcontent = inputbox.textContent;
-        try {
-            var generator = vm.read_eval(textcontent);
-            var result_elt = document.createElement("pre");
-            result_elt.className += "result";
-            var answer_text = document.createElement("pre");
-            var button = document.createElement("button");
-            var append_answer = function() { 
-                var result_val = generator();
-                if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
-                var result_val_pp = "Yes.\n" + result_val;
-                var result = document.createTextNode("=> " + result_val_pp + "\n");
-                
-                answer_text.appendChild(result);
-                button.focus();
-                button.scrollIntoView();
-                return false;
-            }
-            button.onclick = append_answer;
-            button.appendChild(document.createTextNode("More answers!"));
-
-            result_elt.appendChild(answer_text);
-            result_elt.appendChild(button);
-            append_answer();
-            repl.appendChild(result_elt);
-
-            inputbox.contentEditable = false;
-            repl_getline();
-            return false;
-        } catch (e) {
-            if(e instanceof ReaderError) {
-                inputbox.appendChild(document.createTextNode("\n"));
-                display_error(e.msg);
-                return true;
-            } else {
-                display_error(e);
-                throw e;
-            }
-        }
-    }
-
-    function repl_getline() {
-        var inputbox = document.createElement("pre");
-        inputbox.className += "inputbox";
-        inputbox.contentEditable = true;
-        inputbox.onkeypress = function(e) {
-            if (e.keyCode == 13) {
-                return load_input(inputbox);
-            }
-        };
-        repl.appendChild(inputbox);
-        inputbox.focus();
-        inputbox.scrollIntoView();
-        current_input = inputbox;
-        return inputbox;
-    }
-    
-    var dump_button = document.getElementById("dump_button");
-
-    var dump_editor = function() {
-        var editor_value = editor.getValue();
-        vm.reset();
-        current_input.textContent = editor_value;
-        load_input(current_input);
-        return false;
-    }
-    dump_button.onclick = dump_editor;
+    var ed = veneer.new_editor(document.getElementById("container"), vm);
+    var editor = ed.editor;
+    var repl = ed.repl;
+    var errors = ed.errors;
+    var dump_button = ed.dump_button;
 
     var loaded_file = false;
     function setEditorValue(val) {
