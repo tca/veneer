@@ -26,7 +26,7 @@ function Veneer_v1() {
         clear.className += "clear";
         container.appendChild(clear);
         
-        var current_input = repl_getline(true);
+        var current_input = repl_getline(false);
         function display_error(e) {
             var error = document.createElement("div");
             var error_txt = document.createTextNode(e);
