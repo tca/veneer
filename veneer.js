@@ -26,7 +26,7 @@ function Veneer_v1() {
         clear.className += "clear";
         container.appendChild(clear);
         
-        var current_input = repl_getline();
+        var current_input = repl_getline(true);
         function display_error(e) {
             var error = document.createElement("div");
             var error_txt = document.createTextNode(e);
@@ -69,7 +69,7 @@ function Veneer_v1() {
                 repl.appendChild(result_elt);
 
                 inputbox.contentEditable = false;
-                repl_getline();
+                repl_getline(true);
                 return false;
             } catch (e) {
                 if(e instanceof ReaderError) {
@@ -84,7 +84,7 @@ function Veneer_v1() {
         }
 
        
-        function repl_getline() {
+        function repl_getline(focus) {
             var inputbox = document.createElement("pre");
             inputbox.className += "inputbox";
             inputbox.contentEditable = true;
@@ -95,7 +95,7 @@ function Veneer_v1() {
             };
 
             repl.appendChild(inputbox);
-            inputbox.focus();
+            if (focus) { inputbox.focus(); }
             current_input = inputbox;
             return inputbox;
         }
