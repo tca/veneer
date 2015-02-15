@@ -115,7 +115,7 @@ function VeneerVM() {
                 
             }
         } else {
-            throw "unkown exp: " + exp;
+            throw "unkown exp: " + pretty_print(exp);
         }
     }
 
@@ -123,7 +123,7 @@ function VeneerVM() {
     // based on the offset of how far it takes to reach the variable
     // values in the env are expected to be :: offset -> cenv -> value
     function lookup_calc(x, xs) {
-        var n = 0;
+         var n = 0;
         while(xs != null) {
             if (x.string === xs.car.car.string) { return xs.car.cdr(n); }
             else { n++; xs = xs.cdr; }
@@ -148,6 +148,28 @@ function VeneerVM() {
 
     function eval0(exp, env) {
         if(pairp(exp)) {
+            // application
+            var clos = false;
+            if(symbolp(exp.car)) {
+                if(lookup(exp.car, env) || toplevel.hasOwnProperty(exp.car.string)) {
+                    clos = eval0(exp.car, env);
+                }
+            } else if (pairp(exp.car)) {
+                clos = eval0(exp.car, env);
+            }
+
+            if(clos) {
+                var args = map(function(e) { return eval0(e, env); }, exp.cdr);
+                var arglen = length(args);
+                return function(cenv) {
+                    var args1 = new Array(arglen);
+                    var i = 0;
+                    map(function(a) { args1[i++] = a(cenv); }, args);
+                    
+                    return clos(args1.concat(cenv));
+                };
+            }
+            // special forms & builtins
             switch(exp.car) {
             case intern("define"):
                 var result = eval0(exp.cdr.cdr.car, env);
@@ -257,17 +279,8 @@ function VeneerVM() {
                 var e1 = eval0(exp.cdr.car, env);
                 return function(cenv) { return veval(e1(cenv), null); };
 
-            default: // application
-                var clos = eval0(exp.car, env);
-                var args = map(function(e) { return eval0(e, env); }, exp.cdr);
-                var arglen = length(args);
-                return function(cenv) {
-                    var args1 = new Array(arglen);
-                    var i = 0;
-                    map(function(a) { args1[i++] = a(cenv); }, args);
-                    
-                    return clos(args1.concat(cenv));
-                };
+            default:
+                throw "unkown exp: " + pretty_print(exp);
             }
         } else if(constantp(exp)) {
             return function(cenv) { return exp; };
@@ -285,10 +298,10 @@ function VeneerVM() {
                     var val = mbox.get()();
                     return val(cenv); };
             } else {
-                throw ["unbound variable: " + exp.string, env];
+                throw "unbound variable: " + exp.string;
             }
         } else {
-            throw "unkown exp: " + exp;
+            throw "unkown exp: " + pretty_print(exp);
         }
     }
 
