@@ -315,8 +315,8 @@ function VeneerVM() {
     }
     
     function query_map(qm, s) {
-        return foldl(qm, [], function(m, a_v) {
-            return m.concat([a_v.car, ": ", pretty_print(query(a_v.cdr,s)), "\n"]);
+        return foldl(query(qm,s), [], function(m, a_v) {
+            return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
         });
     }
 
