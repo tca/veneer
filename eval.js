@@ -13,13 +13,13 @@ function VeneerVM() {
         }
     }
 
-    function quasiquote_desugar(exp) {
-        if (pairp(exp)) {
+    function quasiquote_desugar(exp, top) {
+        if (pairp(exp) && top) {
             return exp.car === intern("unquote") ?
                 desugar(exp.cdr.car) :
-                list(intern("cons"), quasiquote_desugar(exp.car), quasiquote_desugar(exp.cdr));
+                list(intern("cons"), quasiquote_desugar(exp.car, false), quasiquote_desugar(exp.cdr, false));
         } else {
-            return desugar(list(intern("quote"), exp));
+            return quote_desugar(exp);
         }
     }
 
@@ -33,7 +33,7 @@ function VeneerVM() {
                     return list(exp.car, exp.cdr.car, desugar(exp.cdr.cdr.car));
                 }
             case intern("quote"): return quote_desugar(exp.cdr.car);
-            case intern("quasiquote"): return quasiquote_desugar(exp.cdr.car);
+            case intern("quasiquote"): return quasiquote_desugar(exp.cdr.car, true);
             case intern("conde"):
                 var clauses = map(function(row) { return cons(intern("conj+"), row); }, exp.cdr);
                 return desugar(cons(intern("disj+"), clauses));
