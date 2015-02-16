@@ -100,6 +100,7 @@ function VeneerVM() {
             case intern("numbero"):
             case intern("absento"):
             case intern("eval"):
+            case intern("build-num"):
                 return exp;
                 // free variables
             default:
@@ -278,6 +279,9 @@ function VeneerVM() {
             case intern("eval"):
                 var e1 = eval0(exp.cdr.car, env);
                 return function(cenv) { return veval(e1(cenv), null); };
+            case intern("build-num"):
+                var e1 = eval0(exp.cdr.car, env);
+                return function(cenv) { return build_num(e1(cenv)); };
 
             default:
                 throw "unkown exp: " + pretty_print(exp);

@@ -295,3 +295,13 @@ function reify_s(v, s) {
 function reify_name(n) {
     return { toString: function() { return ["_", n].join("."); } };
 }
+
+function build_num(n) {
+    if(n%2 == 1) {
+        return cons(1, build_num(Math.floor((n-1)/2)));
+    } else if ((!n == 0 ) && n%2 == 0) {
+        return cons(0, build_num(Math.floor(n/2)));
+    } else {
+        return null;
+    }
+}
