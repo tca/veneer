@@ -45,6 +45,23 @@ function skip_whitespace(input_stream) {
     input_stream.unread_char();
 }
 
+function skip_whitespace_and_comments(input_stream) {
+    var c;
+    while(true) {
+        c = input_stream.read_char();
+        if(c == ";") {
+            while(!eofp(c)) {
+                c = input_stream.read_char();
+                if(c == "\n") {
+                    break;
+                }
+            }
+        }
+        else if(!whitespacep(c)) { break; }
+    }
+    input_stream.unread_char();
+}
+
 function read_symbol(input_stream) {
     var buffer = [input_stream.read_char()];
     var c;
@@ -111,7 +128,7 @@ function read_list(input_stream) {
 
 function read_list_aux(sexps, input_stream) {
     while (true) {
-        skip_whitespace(input_stream);
+        skip_whitespace_and_comments(input_stream);
         var c = input_stream.peek_char();
         switch (c) {
         case eof:
@@ -179,7 +196,7 @@ function read(input_stream) {
 
 function read_top(sexps, input_stream) {
     while (true) {
-        skip_whitespace(input_stream);
+        skip_whitespace_and_comments(input_stream);
         var c = input_stream.peek_char();
         if (c === eof) {
             input_stream.read_char();
