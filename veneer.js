@@ -49,9 +49,11 @@ function Veneer_v1() {
                 var answer_text = document.createElement("div");
                 var button = document.createElement("button");
                 var append_answer = function(focus) { 
+                    var time_before = window.performance.now();
                     var result_val = generator();
+                    var run_time = (window.performance.now() - time_before).toFixed(2);
                     if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
-                    var result_val_pp = "Yes.\n" + result_val;
+                    var result_val_pp = "Yes. (" + run_time + "ms) \n" + result_val;
                     var result = document.createTextNode("=> " + result_val_pp + "\n");
                     
                     answer_text.appendChild(result);
