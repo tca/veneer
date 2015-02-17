@@ -128,7 +128,7 @@ function read_list(input_stream) {
 
 function read_list_aux(sexps, input_stream) {
     while (true) {
-        skip_whitespace(input_stream);
+        skip_whitespace_and_comments(input_stream);
         var c = input_stream.peek_char();
         switch (c) {
         case eof:
