@@ -1,7 +1,7 @@
 function Var(c) { this.c = c; }
-function mkvar(c) { return new Var(c); } 
+function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
-function vareq(x1, x2) { return x1.c == x2.c };
+function vareq(x1, x2) { return x1.c === x2.c; }
 
 function MiniKanrenState(s, c, d, sy, nm, ab) {
     this.substitution = s;
@@ -11,87 +11,82 @@ function MiniKanrenState(s, c, d, sy, nm, ab) {
     this.numbers = nm;
     this.absentee = ab;
 }
-function Mks(s, c, d, sy, nm, ab) { return new MiniKanrenState(s,c,d,sy,nm,ab); }
+function Mks(s, c, d, sy, nm, ab) { return new MiniKanrenState(s, c, d, sy, nm, ab); }
 
 var not_found = [];
 function walk(u, s) {
     var pr;
-    var v;
-    while(true) {
-        if (varp(u)) {
-            v = s.get(u.c, not_found);
-            if (v === not_found) {
-                return u;
-            } else {
-                u = v;
-            }
-        } else {
+    while(varp(u)) {
+        pr = s.get(u.c, not_found);
+        if (pr === not_found) {
             return u;
+        } else {
+            u = pr;
         }
-    }
+    } return u;
 }
 
 function occurs_check(x, v, s) {
-    var v = walk(v, s);
-    if(varp(v)) {
-        return vareq(v, x);
-    } else if (pairp(v)) {
-        return occurs_check(x, v.car, s) || occurs_check(x, v.cdr, s);
+    var v1 = walk(v, s);
+    if(varp(v1)) {
+        return vareq(v1, x);
+    } else if (pairp(v1)) {
+        return occurs_check(x, v1.car, s) || occurs_check(x, v1.cdr, s);
     } else {
         return false;
     }
 }
- 
+
 function ext_s_check(x, v, s) {
     return occurs_check(x, v, s) ? false : s.set(x.c, v);
 }
- 
+
 function eqeq(u, v) {
     return function(mks) {
         var s = unify(u, v, mks.substitution);
         return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.symbols, mks.numbers, mks.absentee)) : mzero;
-    }
+    };
 }
 
 function noteqeq(u, v) {
     return function(mks) {
         var d = disequality(u, v, mks.substitution);
-        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d,mks.diseq), mks.symbols, mks.numbers, mks.absentee)) : mzero;
-    }
+        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.symbols, mks.numbers, mks.absentee)) : mzero;
+    };
 }
 
 function symbolo(s) {
     return function(mks) {
         return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, cons(s, mks.symbols), mks.numbers, mks.absentee));
-    }
+    };
 }
 
 function numbero(s) {
     return function(mks) {
         return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, cons(s, mks.numbers), mks.absentee));
-    }
+    };
 }
 
 function absento(s, f) {
     return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, mks.numbers, cons(cons(s,f), mks.absentee)));
-    }
+        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, mks.numbers, cons(cons(s, f), mks.absentee)));
+    };
 }
 
 function unit(mks) { return cons(mks, mzero); }
 var mzero = null;
- 
+
 function unify(u, v, s) {
-    var u = walk(u, s);
-    var v = walk(v, s);
-    if (varp(u) && varp(v) && vareq(u, v)) { return s; }
-    else if (varp(u)) { return ext_s_check(u, v, s); }
-    else if (varp(v)) { return ext_s_check(v, u ,s); }
-    else if (pairp(u) && pairp(v)) {
-        var s = unify(u.car, v.car, s);
-        return (s !== false) && unify(u.cdr, v.cdr, s);
+    var u1 = walk(u, s);
+    var v1 = walk(v, s);
+    if (varp(u1) && varp(v1) && vareq(u1, v1)) { return s; }
+    else if (varp(u1)) { return ext_s_check(u1, v1, s); }
+    else if (varp(v1)) { return ext_s_check(v1, u1, s); }
+    else if (pairp(u1) && pairp(v1)) {
+        var s1 = unify(u1.car, v1.car, s);
+        return (s1 !== false) && unify(u1.cdr, v1.cdr, s1);
     } else {
-        return (u == v) && s;
+        return (u1 === v1) && s;
     }
 }
 
@@ -104,16 +99,16 @@ function ext_s_check_prefix(x, v, s, cs) {
 }
 
 function unify_prefix(u, v, s, cs) {
-    var u = walk(u, s);
-    var v = walk(v, s);
-    if (varp(u) && varp(v) && vareq(u, v)) { return cons(s, cs); }
-    else if (varp(u)) { return ext_s_check_prefix(u, v, s, cs); }
-    else if (varp(v)) { return ext_s_check_prefix(v, u ,s, cs); }
-    else if (pairp(u) && pairp(v)) {
-        var s_cs = unify_prefix(u.car, v.car, s, cs);
-        return (s_cs !== false) && unify_prefix(u.cdr, v.cdr, s_cs.car, s_cs.cdr);
+    var u1 = walk(u, s);
+    var v1 = walk(v, s);
+    if (varp(u1) && varp(v1) && vareq(u1, v1)) { return cons(s, cs); }
+    else if (varp(u1)) { return ext_s_check_prefix(u1, v1, s, cs); }
+    else if (varp(v1)) { return ext_s_check_prefix(v1, u1, s, cs); }
+    else if (pairp(u1) && pairp(v1)) {
+        var s_cs = unify_prefix(u1.car, v1.car, s, cs);
+        return (s_cs !== false) && unify_prefix(u1.cdr, v1.cdr, s_cs.car, s_cs.cdr);
     } else {
-        return (u == v) && cons(s, cs);
+        return (u1 === v1) && cons(s, cs);
     }
 }
 
@@ -121,7 +116,7 @@ function disequality(u, v, s) {
     var s_cs_hat = unify_prefix(u, v, s, null);
     if(s_cs_hat !== false) {
         var d = s_cs_hat.cdr;
-        return (d == null) ? false : d;
+        return (d === null) ? false : d;
     }
     else {
         return null;
@@ -144,7 +139,7 @@ function normalize_constraint_store(mks) {
     while(sy != null) {
         var i = walk(sy.car, s);
         sy = sy.cdr;
-        
+
         if (varp(i)) {
             syn = cons(i, syn);
         }
@@ -159,16 +154,16 @@ function normalize_constraint_store(mks) {
     // Normalize the number set
     // ensure disjointness of symbols and numbers
     while(nm != null) {
-        var i = walk(nm.car, s);
+        var i1 = walk(nm.car, s);
         nm = nm.cdr;
-        
-        if (varp(i)) {
-            if(anyp(function(j){return vareq(j,i)}, syn)) {
+
+        if (varp(i1)) {
+            if(anyp(function(j) { return vareq(j, i1); }, syn)) {
                 return mzero;
             }
-            nmn = cons(i, nmn);
+            nmn = cons(i1, nmn);
         }
-        else if(numberp(i)) {
+        else if(numberp(i1)) {
             continue;
         }
         else {
@@ -181,15 +176,15 @@ function normalize_constraint_store(mks) {
         var es = d.car;
 
         if(es != null) {
-            d_hat = disequality(map(car, es), map(cdr, es), s);
-            
+            var d_hat = disequality(map(car, es), map(cdr, es), s);
+
             if(d_hat === false) {
                 return mzero;
             }
 
             dn = cons(d_hat, dn);
         }
-        
+
         d = d.cdr;
     }
 
@@ -197,7 +192,7 @@ function normalize_constraint_store(mks) {
     while(abs != null) {
         var abs_s = walk(abs.car.car, s);
         var abs_f = walk(abs.car.cdr, s);
-        
+
         if (varp(abs_s) && varp(abs_f)) {
             absn = cons(cons(abs_s, abs_f), absn);
         }
@@ -209,41 +204,41 @@ function normalize_constraint_store(mks) {
             absn = cons(cons(abs_s, abs_f), absn);
         }
         else if (symbolp(abs_s) && symbolp(abs_f)) {
-            if(abs_s == abs_f) {
+            if(abs_s === abs_f) {
                 return mzero;
             }
             absn = cons(cons(abs_s, abs_f), absn);
         }
         else if (varp(abs_s) && pairp(abs_f)) {
             absn = cons(cons(abs_s, abs_f.car),
-                        cons(cons(abs_s, abs_f.cdr), absn))
+                        cons(cons(abs_s, abs_f.cdr), absn));
         }
         else {
             return mzero;
         }
-        
+
         abs = abs.cdr;
     }
 
     return unit(Mks(s, c, dn, syn, nmn, absn));
 }
- 
+
 function call_fresh(f) {
     return function(mks) {
         var c = mks.counter;
         return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.symbols, mks.numbers, mks.absentee));
-    }
+    };
 }
 
 function disj(g1, g2) {
-    return function(mks) { return mplus(g1(mks), g2(mks)); }
+    return function(mks) { return mplus(g1(mks), g2(mks)); };
 }
 function conj(g1, g2) {
-    return function(mks) { return bind(g1(mks), g2); }
+    return function(mks) { return bind(g1(mks), g2); };
 }
  
 function mplus($1, $2) {
-    if ($1 == null) {
+    if ($1 === null) {
         return $2;
     } else if (procedurep($1)) {
         return function() { return mplus($2, $1()); };
@@ -251,9 +246,9 @@ function mplus($1, $2) {
         return cons($1.car, mplus($1.cdr, $2));
     }
 }
- 
+
 function bind($, g) {
-    if ($ == null) {
+    if ($ === null) {
         return mzero;
     } else if (procedurep($)) {
         return function() { return bind($(), g); };
@@ -272,14 +267,14 @@ function take(n, $) {
     if (n <= 0) {
         return null;
     } else {
-        var $ = pull($);
-        return ($ == null) ? null : cons($.car, take(n - 1, $.cdr));
+        var $1 = pull($);
+        return ($1 === null) ? null : cons($1.car, take(n - 1, $1.cdr));
     }
 }
 
 function take_all($) {
     $ = pull($);
-    return ($ == null) ? null : cons($.car, take_all($.cdr));
+    return ($ === null) ? null : cons($.car, take_all($.cdr));
 }
 
 function reify_first(mks) {
@@ -315,10 +310,10 @@ function reify_name(n) {
 }
 
 function build_num(n) {
-    if(n%2 == 1) {
-        return cons(1, build_num(Math.floor((n-1)/2)));
-    } else if ((!n == 0 ) && n%2 == 0) {
-        return cons(0, build_num(Math.floor(n/2)));
+    if((n % 2) === 1) {
+        return cons(1, build_num(Math.floor((n - 1) / 2)));
+    } else if (n !== 0 && (n % 2) === 0) {
+        return cons(0, build_num(Math.floor(n / 2)));
     } else {
         return null;
     }

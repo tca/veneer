@@ -4,8 +4,8 @@ function Pair(car, cdr) {
 }
 function car(x) { return x.car; }
 function cdr(x) { return x.cdr; }
-function pairp(x) { return x instanceof Pair }
-function cons(car,cdr) { return new Pair(car,cdr); }
+function pairp(x) { return x instanceof Pair; }
+function cons(car, cdr) { return new Pair(car, cdr); }
 
 
 function Symbol(str) { this.string = str; }
@@ -25,10 +25,10 @@ function intern(string) {
 
 function procedurep(x) { return x instanceof Function; }
 function symbolp(x) { return x instanceof Symbol; }
-function numberp(t) { return typeof t == 'number'; }
-function booleanp(t) { return typeof t == 'boolean'; }
-function stringp(t) { return typeof t == 'string'}
-function constantp(t)  { return numberp(t) || booleanp(t) || stringp(t); }
+function numberp(t) { return typeof t === "number"; }
+function booleanp(t) { return typeof t === "boolean"; }
+function stringp(t) { return typeof t === "string"; }
+function constantp(t) { return numberp(t) || booleanp(t) || stringp(t); }
 
 function Ref(v) {
     this.get = function() { return v; };
@@ -53,11 +53,11 @@ function assp(pred, xs) {
 
 function length(lst) {
     var memo = 0;
-    while(lst != null) { memo++; lst = lst.cdr  }
+    while(lst != null) { memo++; lst = lst.cdr; }
     return memo;
 }
 
-function reverse_aux(lst,memo) {
+function reverse_aux(lst, memo) {
     while(lst != null) {
         memo = cons(lst.car, memo);
         lst = lst.cdr;
@@ -65,7 +65,7 @@ function reverse_aux(lst,memo) {
 }
 
 function reverse(lst) {
-    return reverse_aux(lst,null);
+    return reverse_aux(lst, null);
 }
 
 function array_to_list(arr) {
@@ -110,8 +110,8 @@ function pretty_print(x) {
         return x.toString();
     } else if (x == null) {
         return "()";
-    } else if (typeof x == 'string') {
-        return ['"',x ,'"'].join("");
+    } else if (typeof x === "string") {
+        return ["\"", x, "\""].join("");
     } else if (symbolp(x)) {
         return x.string;
     } else if (pairp(x)) {
@@ -131,8 +131,8 @@ function pretty_print(x) {
                 break;
             }
         } return ["(", memo.join(" "), ")"].join("");
-    } else if (typeof x.toString === 'function') {
-        return x.toString()
+    } else if (typeof x.toString === "function") {
+        return x.toString();
     } else {
         return x;
     }

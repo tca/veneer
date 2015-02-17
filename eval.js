@@ -16,18 +16,18 @@ function VeneerVM() {
     function quasiquote_desugar(exp, n) {
         if (pairp(exp)) {
             if (exp.car === intern("unquote")) {
-                if (n == 1) {
+                if (n === 1) {
                     return desugar(exp.cdr.car);
                 } else {
                     return list(intern("list"), list(intern("quote"), intern("unquote")),
-                                quasiquote_desugar(exp.cdr.car, n-1));
+                                quasiquote_desugar(exp.cdr.car, n - 1));
                 }
             } else if (exp.car === intern("quasiquote")) {
                 return  list(intern("list"), list(intern("quote"), intern("quasiquote")),
-                             quasiquote_desugar(exp.cdr.car, n+1));
-            } else { 
+                             quasiquote_desugar(exp.cdr.car, n + 1));
+            } else {
                 return list(intern("cons"), quasiquote_desugar(exp.car, n),
-                            quasiquote_desugar(exp.cdr, n))
+                            quasiquote_desugar(exp.cdr, n));
             }
         } else {
             return quote_desugar(exp);
@@ -56,7 +56,7 @@ function VeneerVM() {
     }
 
     function register_define(exp) {
-        if (pairp(exp) && exp.car == intern("define")) {
+        if (pairp(exp) && exp.car === intern("define")) {
             var a = pairp(exp.cdr.car) ? exp.cdr.car.car : exp.cdr.car;
             toplevel[a.string] = null;
         }
@@ -124,7 +124,6 @@ function VeneerVM() {
                 } else {
                     throw "unbound variable: " + exp.string;
                 }
-                
             }
         } else {
             throw "unkown exp: " + pretty_print(exp);
@@ -143,7 +142,7 @@ function VeneerVM() {
     }
 
     function augment_env(env, name) {
-        var binding = cons(name, function (offset) { return function(cenv) { return cenv[offset]; } });
+        var binding = cons(name, function (offset) { return function(cenv) { return cenv[offset]; }; });
         return cons(binding, env);
     }
 
@@ -154,8 +153,8 @@ function VeneerVM() {
                           function(e_c, a) {
                               var var1 = mkvar(e_c.cdr);
                               var retrieve = function(_) { return function(_) { return var1; }; };
-                              return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr+1); });
-        return list(exp1, e1_c1.car, Mks(Immutable.Map(),e1_c1.cdr, null, null, null));
+                              return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr + 1); });
+        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, null, null));
     }
 
     function eval0(exp, env) {
@@ -177,7 +176,7 @@ function VeneerVM() {
                     var args1 = new Array(arglen);
                     var i = 0;
                     map(function(a) { args1[i++] = a(cenv); }, args);
-                    
+
                     return clos(args1.concat(cenv));
                 };
             }
@@ -236,7 +235,7 @@ function VeneerVM() {
 
                         var c1 = foldl(bindings, mks.counter, function(c, a) {
                             args1[i++] = mkvar(c);
-                            return c+1;
+                            return c + 1;
                         });
 
                         return body1(args1.concat(cenv))(Mks(mks.substitution, c1, mks.diseq, mks.symbols, mks.numbers));
@@ -248,11 +247,11 @@ function VeneerVM() {
 
                 var env1 = foldl(bindings, env, augment_env);
                 var body1 = eval0(cons(intern("begin"), body), env1);
-                
+
                 return body1;
 
                 // these are builtin functions that we want to call directly instead of building a cenv
-            case intern("cons"): 
+            case intern("cons"):
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(exp.cdr.cdr.car, env);
                 return function(cenv) { return cons(e1(cenv), e2(cenv)); };
@@ -264,11 +263,11 @@ function VeneerVM() {
             case intern("=="):
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return eqeq(e1(cenv), e2(cenv)); }
+                return function(cenv) { return eqeq(e1(cenv), e2(cenv)); };
             case intern("=/="):
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return noteqeq(e1(cenv), e2(cenv)); }
+                return function(cenv) { return noteqeq(e1(cenv), e2(cenv)); };
             case intern("conj"):
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(exp.cdr.cdr, env);
@@ -279,14 +278,14 @@ function VeneerVM() {
                 return function(cenv) { return disj(e1(cenv), e2(cenv)); };
             case intern("symbolo"):
                 var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return symbolo(e1(cenv)); }
+                return function(cenv) { return symbolo(e1(cenv)); };
             case intern("numbero"):
                 var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return numbero(e1(cenv)); }
+                return function(cenv) { return numbero(e1(cenv)); };
             case intern("absento"):
                 var e1 = eval0(exp.cdr.car, env);
                 var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return absento(e1(cenv), e2(cenv)); }
+                return function(cenv) { return absento(e1(cenv), e2(cenv)); };
             case intern("eval"):
                 var e1 = eval0(exp.cdr.car, env);
                 return function(cenv) { return veval(e1(cenv), null); };
@@ -328,9 +327,9 @@ function VeneerVM() {
         var v1 = walk_star(v, s);
         return walk_star(v1, reify_s(v1, Immutable.Map()));
     }
-    
+
     function query_map(qm, s) {
-        return foldl(query(qm,s), [], function(m, a_v) {
+        return foldl(query(qm, s), [], function(m, a_v) {
             return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
         });
     }
