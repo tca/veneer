@@ -16,9 +16,9 @@ function Mks(s, c, d, sy, nm, ab) { return new MiniKanrenState(s,c,d,sy,nm,ab); 
 function walk(u, s) {
     var pr;
     while(true) {
-        pr = varp(u) && assp(function(v) { return vareq(u, v); }, s);
+        pr = varp(u) && s.has(u.c); 
         if(pr != false) {
-            u = pr.cdr;
+            u = s.get(u.c);
         } else {
             return u;
         }
@@ -37,7 +37,7 @@ function occurs_check(x, v, s) {
 }
  
 function ext_s_check(x, v, s) {
-    return occurs_check(x, v, s) ? false : cons(cons(x, v), s);
+    return occurs_check(x, v, s) ? false : s.set(x.c, v);
 }
  
 function eqeq(u, v) {
@@ -89,20 +89,32 @@ function unify(u, v, s) {
     }
 }
 
-function subtract_substitution(s_hat, s) {
-    // This function requires that s^ is some stuff consed onto s
-    if(s_hat === s) { // we use === for pointer equality
-        return null;
+function ext_s_check_prefix(x, v, s, cs) {
+    if (occurs_check(x, v, s)) {
+        return false;
+    } else {
+        return cons(s.set(x.c, v), cons(cons(x, v), cs));
     }
-    else {
-        return cons(s_hat.car, subtract_substitution(s_hat.cdr, s));
+}
+
+function unify_prefix(u, v, s, cs) {
+    var u = walk(u, s);
+    var v = walk(v, s);
+    if (varp(u) && varp(v) && vareq(u, v)) { return cons(s, cs); }
+    else if (varp(u)) { return ext_s_check_prefix(u, v, s, cs); }
+    else if (varp(v)) { return ext_s_check_prefix(v, u ,s, cs); }
+    else if (pairp(u) && pairp(v)) {
+        var s_cs = unify_prefix(u.car, v.car, s, cs);
+        return (s_cs != false) && unify_prefix(u.cdr, v.cdr, s_cs.car, s_cs.cdr);
+    } else {
+        return (u == v) && cons(s, cs);
     }
 }
 
 function disequality(u, v, s) {
-    var s_hat = unify(u, v, s);
-    if(s_hat != false) {
-        var d = subtract_substitution(s_hat, s);
+    var s_cs_hat = unify_prefix(u, v, s, null);
+    if(s_cs_hat != false) {
+        var d = s_cs_hat.cdr;
         return (d == null) ? false : d;
     }
     else {
@@ -266,7 +278,7 @@ function take_all($) {
 
 function reify_first(mks) {
     var v = walk_star(mkvar(0), mks.substitution);
-    return walk_star(v, reify_s(v, null));
+    return walk_star(v, reify_s(v, Immutable.Map()));
 }
 
 function walk_star(v, s) {
@@ -284,7 +296,7 @@ function walk_star(v, s) {
 function reify_s(v, s) {
     var v1 = walk(v, s);
     if (varp(v1)) {
-        return cons(cons(v1, reify_name(length(s))), s);
+        return s.set(v1.c, reify_name(s.size));
     } else if (pairp(v1)) {
         return reify_s(v1.cdr, reify_s(v1.car, s));
     } else {
