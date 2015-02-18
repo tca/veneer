@@ -43,43 +43,52 @@ function Veneer_v1() {
                .replace(/(<([^>]+)>)/ig, ""); */
             var textcontent = inputbox.textContent;
             try {
-                var generator = vm.read_eval(textcontent);
+                var result = vm.read_eval(textcontent);
                 var result_elt = document.createElement("div");
                 result_elt.className += "result";
-                var answer_text = document.createElement("div");
-                var button = document.createElement("button");
-                var append_answer = function(focus) { 
-                    var answered;
-                    var time_before = window.performance.now();
-                    var result_val = generator();
-                    var run_time = (window.performance.now() - time_before).toFixed(2);
-                    if (result_val === null) {
-                        answered = "No.";
-                        result_val = "";
-                        result_elt.removeChild(button);
-                    } else {
-                        answered = "Yes.";
-                    }
-                    var result_val_pp = answered + " (" + run_time + "ms)\n" + result_val;
-                    var result = document.createTextNode("=> " + result_val_pp + "\n");
-                    
-                    answer_text.appendChild(result);
 
-                    if(focus) {
-                        button.focus();
-                        current_input.scrollIntoView(false);
-                    }
+                function display_query(generator, parent) {
+                    var answer_text = document.createElement("div");
+                    var button = document.createElement("button");
+                    var append_answer = function(focus) {
+                        var answered;
+                        var time_before = window.performance.now();
+                        var answer_val = generator();
+                        var run_time = (window.performance.now() - time_before).toFixed(2);
+                        if (answer_val === null) {
+                            answered = "No.";
+                            answer_val = "";
+                            parent.removeChild(button);
+                        } else {
+                            answered = "Yes.";
+                        }
+                        var answer_val_pp = answered + " (" + run_time + "ms)\n" + answer_val;
+                        var answer_node = document.createTextNode("=> " + answer_val_pp + "\n");
+                        answer_text.appendChild(answer_node);
 
-                    return false;
+                        if(focus) {
+                            button.focus();
+                            current_input.scrollIntoView(false);
+                        }
+
+                        return false;
+                    }
+                    button.onclick = function() { return append_answer(true); };
+                    button.appendChild(document.createTextNode("More answers!"));
+                    append_answer(false);
+                    parent.appendChild(answer_text);
+                    parent.appendChild(button);
+                    return answer_text;
                 }
-                button.onclick = function() { return append_answer(true); };
-                button.appendChild(document.createTextNode("More answers!"));
 
-                result_elt.appendChild(answer_text);
-                result_elt.appendChild(button);
-                append_answer(false);
+                function display_val(val, parent) {
+                    parent.appendChild(document.createTextNode(pretty_print(val)));
+                }
+
+                procedurep(result) ? display_query(result, result_elt)
+                    : display_val(result, result_elt);
+
                 repl.appendChild(result_elt);
-
                 inputbox.contentEditable = false;
                 repl_getline(true);
                 return false;

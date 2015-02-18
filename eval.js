@@ -331,17 +331,13 @@ function VeneerVM() {
         };
     }
 
-    function query_stream(init) {
-        var exp = init.car;
-        var env = init.cdr.car;
-        var mks = init.cdr.cdr.car;
-        var foo = veval(exp, env);
-        var $ = foo(mks);
+    function query_stream(q, qenv, mks) {
+        var $ = q(mks);
 
         var run_queries = function(mks) {
             var s = mks.substitution;
             var d = mks.diseq;
-            var qm = map(function(p) { return cons(p.car.string, p.cdr()()); }, env);
+            var qm = map(function(p) { return cons(p.car.string, p.cdr()()); }, qenv);
             var record = query_map(qm, d, s);
             return record.join("");
         };
@@ -361,8 +357,18 @@ function VeneerVM() {
     function run_expression(p) {
         var desugared = desugar(p);
         var lifted = lift_frees(desugared);
-        var q$ = query_stream(lifted);
-        return stream_generator(q$);
+
+        var exp = lifted.car;
+        var env = lifted.cdr.car;
+        var mks = lifted.cdr.cdr.car;
+        var evald = veval(exp, env);
+
+        if(procedurep(evald)) {
+            var q$ = query_stream(evald, env, mks);
+            return stream_generator(q$);
+        } else {
+            return evald;
+        }
     }
 
     function run_program(p) {
