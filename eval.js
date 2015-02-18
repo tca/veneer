@@ -323,40 +323,6 @@ function VeneerVM() {
         return eval0(exp, env)([]);
     }
 
-    function query(v, s) {
-        var v1 = walk_star(v, s);
-        return walk_star(v1, reify_s(v1, Immutable.Map()));
-    }
-
-    function intersperse_map(l, f, sep) {
-        var m = [];
-        while(l != null) {
-            m = m.concat([f(l.car),(l.cdr == null) ? "" : sep]);
-            l = l.cdr;
-        }
-        return m;
-    }
-    
-    function query_map(qm, d, s) {
-        var q = query(cons(qm, d), s);
-        var result = foldl(q.car, [], function(m, a_v) {
-            return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
-        });
-        
-        if(false) {
-            return result;
-        }
-        else {
-            var present = function(dd) {
-                // dd is a disjunction of disequalities
-                return pretty_print(cons(intern("or"),map(function(a){return list(intern("=/="),a.car,a.cdr)},dd)));
-            };
-            result = result.concat(["{"]);
-            result = result.concat(intersperse_map(q.cdr, present, ","));
-            result = result.concat(["}", "\n"]);
-            return result;
-        }
-    }
 
     function map_stream(fn, stream) {
         return function() {
