@@ -9,8 +9,10 @@ function load_editor() {
     var errors = ed.errors;
     var dump_button = ed.dump_button;
 
+    var demo = 0;
     var loaded_file = false;
     function setEditorValue(val) {
+        demo = false;
         loaded_file = false;
         editor.setValue(val);
     }
@@ -21,12 +23,15 @@ function load_editor() {
     for(var i=0; i < demos.length; i++ ) {
         var selection = document.createElement("option");
         var name = demos[i].getElementsByClassName("title")[0].textContent;
-        file_values[i] =  demos[i].getElementsByClassName("content")[0].value;
+        file_values[i] = demos[i].getElementsByClassName("content")[0].value;
         selection.value = i;
         selection.appendChild(document.createTextNode(name));
         demo_picker.appendChild(selection);
     }
-    demo_picker.onchange = function() { setEditorValue(file_values[demo_picker.selectedIndex]); };
+    demo_picker.onchange = function() {
+        setEditorValue(file_values[demo_picker.selectedIndex]);
+        demo = file_values[demo_picker.selectedIndex];
+    };
     demo_picker.value = "0";
     setEditorValue(file_values[0]);
 
@@ -46,6 +51,7 @@ function load_editor() {
     document.getElementById("new_file").onclick = add_file;
     
     function load_file(name) {
+        if (loaded_file != name) { save_current(); }
         var new_val = localStorage.getItem(name);
         setEditorValue(new_val);
         loaded_file = name;
@@ -56,7 +62,8 @@ function load_editor() {
     }
     function save_current() {
         if(loaded_file) {
-            var overwrite = confirm_overwrite(loaded_file);
+            var changed = editor.getValue() !== localStorage.getItem(loaded_file);
+            var overwrite = !changed || confirm_overwrite(loaded_file);
             if(!overwrite) { return false; }
         } else {
             loaded_file = window.prompt("save file as:","default");
