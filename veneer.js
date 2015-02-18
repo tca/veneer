@@ -49,14 +49,22 @@ function Veneer_v1() {
                 var answer_text = document.createElement("div");
                 var button = document.createElement("button");
                 var append_answer = function(focus) { 
+                    var answered;
                     var time_before = window.performance.now();
                     var result_val = generator();
                     var run_time = (window.performance.now() - time_before).toFixed(2);
-                    if (result_val==null) { result_elt.removeChild(button); result_val = "No."; }
-                    var result_val_pp = "Yes. (" + run_time + "ms) \n" + result_val;
+                    if (result_val === null) {
+                        answered = "No.";
+                        result_val = "";
+                        result_elt.removeChild(button);
+                    } else {
+                        answered = "Yes.";
+                    }
+                    var result_val_pp = answered + " (" + run_time + "ms)\n" + result_val;
                     var result = document.createTextNode("=> " + result_val_pp + "\n");
                     
                     answer_text.appendChild(result);
+
                     if(focus) {
                         button.focus();
                         current_input.scrollIntoView(false);
@@ -87,7 +95,6 @@ function Veneer_v1() {
             }
         }
 
-       
         function repl_getline(focus) {
             var inputbox = document.createElement("pre");
             inputbox.className += "inputbox";
