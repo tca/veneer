@@ -77,9 +77,9 @@ function Veneer_v1() {
                     }
                     button.onclick = function() { return append_answer(true); };
                     button.appendChild(document.createTextNode("More answers!"));
-                    append_answer(false);
                     parent.appendChild(answer_text);
                     parent.appendChild(button);
+                    append_answer(false);
                     return answer_text;
                 }
 
