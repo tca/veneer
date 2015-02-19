@@ -41,6 +41,8 @@ function Veneer_v1() {
             /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
                .replace(/<[p|div]\s/ig, '\n$0') 
                .replace(/(<([^>]+)>)/ig, ""); */
+
+            var pass = false;
             var textcontent = inputbox.textContent;
             try {
                 var result = vm.read_eval(textcontent);
@@ -96,12 +98,14 @@ function Veneer_v1() {
                 if(e instanceof ReaderError) {
                     inputbox.appendChild(document.createTextNode("\n"));
                     display_error(e.msg);
-                    return true;
+                    pass = true;
+                    throw e.msg;
                 } else {
                     display_error(e);
+                    pass = false;
                     throw e;
                 }
-            }
+            } finally { return pass; }
         }
 
         function repl_getline(focus) {

@@ -338,8 +338,7 @@ function VeneerVM() {
             var s = mks.substitution;
             var d = mks.diseq;
             var qm = map(function(p) { return cons(p.car.string, p.cdr()()); }, qenv);
-            var record = query_map(qm, d, s);
-            return record.join("");
+            return query_map(qm, d, s).join("");
         };
         return map_stream(run_queries, $);
     }
@@ -366,8 +365,10 @@ function VeneerVM() {
         if(procedurep(evald)) {
             var q$ = query_stream(evald, env, mks);
             return stream_generator(q$);
-        } else {
+        } else if (env === null) {
             return evald;
+        } else {
+            throw "unbound variables: " + pretty_print(map(car, env));
         }
     }
 

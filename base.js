@@ -108,7 +108,7 @@ function assq(x, xs) {
 function pretty_print(x) {
     if (numberp(x)) {
         return x.toString();
-    } else if (x == null) {
+    } else if (x === null) {
         return "()";
     } else if (typeof x === "string") {
         return ["\"", x, "\""].join("");
@@ -121,7 +121,7 @@ function pretty_print(x) {
             if(pairp(cur.cdr)) {
                 memo.push(pretty_print(cur.car));
                 cur = cur.cdr;
-            } else if (cur.cdr == null) {
+            } else if (cur.cdr === null) {
                 memo.push(pretty_print(cur.car));
                 break;
             } else {
@@ -131,9 +131,9 @@ function pretty_print(x) {
                 break;
             }
         } return ["(", memo.join(" "), ")"].join("");
-    } else if (typeof x.toString === "function") {
+    } else if (x && x.hasOwnProperty("toString") && typeof x.toString === "function") {
         return x.toString();
     } else {
-        return x;
+        return JSON.stringify(x);
     }
 }
