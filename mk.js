@@ -190,8 +190,11 @@ function normalize_constraint_store(mks) {
 
     // normalize the absento constraints
     while(abs !== null) {
-        var abs_s = walk(abs.car.car, s);
-        var abs_f = walk(abs.car.cdr, s);
+        var abs_cur = abs.car;
+        abs = abs.cdr;
+
+        var abs_s = walk(abs_cur.car, s);
+        var abs_f = walk(abs_cur.cdr, s);
 
         // defer until both terms are ground
         if (varp(abs_f) || varp(abs_s)) {
@@ -207,7 +210,6 @@ function normalize_constraint_store(mks) {
             return mzero;
         }
         // forget constraint, it can never fail
-        abs = abs.cdr;
     }
 
     return unit(Mks(s, c, dn, syn, nmn, absn));
