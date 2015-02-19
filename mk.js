@@ -136,7 +136,7 @@ function normalize_constraint_store(mks) {
     var absn = null;
 
     // Normalize the symbol set
-    while(sy != null) {
+    while(sy !== null) {
         var i = walk(sy.car, s);
         sy = sy.cdr;
 
@@ -153,7 +153,7 @@ function normalize_constraint_store(mks) {
 
     // Normalize the number set
     // ensure disjointness of symbols and numbers
-    while(nm != null) {
+    while(nm !== null) {
         var i1 = walk(nm.car, s);
         nm = nm.cdr;
 
@@ -172,10 +172,10 @@ function normalize_constraint_store(mks) {
     }
 
     // normalize the disequality constraints
-    while(d != null) {
+    while(d !== null) {
         var es = d.car;
 
-        if(es != null) {
+        if(es !== null) {
             var d_hat = disequality(map(car, es), map(cdr, es), s);
 
             if(d_hat === false) {
@@ -189,34 +189,24 @@ function normalize_constraint_store(mks) {
     }
 
     // normalize the absento constraints
-    while(abs != null) {
+    while(abs !== null) {
         var abs_s = walk(abs.car.car, s);
         var abs_f = walk(abs.car.cdr, s);
 
-        if (varp(abs_s) && varp(abs_f)) {
+        // defer until both terms are ground
+        if (varp(abs_f) || varp(abs_s)) {
             absn = cons(cons(abs_s, abs_f), absn);
         }
-        else if (varp(abs_s) && symbolp(abs_f)) {
-            // this could be changed into a =/= constraint
-            absn = cons(cons(abs_s, abs_f), absn);
+        // split and requeue
+        else if (pairp(abs_f)) {
+            abs = cons(cons(abs_s, abs_f.car),
+                       cons(cons(abs_s, abs_f.cdr), abs ));
         }
-        else if (symbolp(abs_s) && varp(abs_f)) {
-            absn = cons(cons(abs_s, abs_f), absn);
-        }
-        else if (symbolp(abs_s) && symbolp(abs_f)) {
-            if(abs_s === abs_f) {
-                return mzero;
-            }
-            absn = cons(cons(abs_s, abs_f), absn);
-        }
-        else if (varp(abs_s) && pairp(abs_f)) {
-            absn = cons(cons(abs_s, abs_f.car),
-                        cons(cons(abs_s, abs_f.cdr), absn));
-        }
-        else {
+        // both are ground and atomic; check for eqv?
+        else if (abs_s === abs_f) {
             return mzero;
         }
-
+        // forget constraint, it can never fail
         abs = abs.cdr;
     }
 
