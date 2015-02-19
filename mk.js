@@ -3,15 +3,14 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c === x2.c; }
 
-function MiniKanrenState(s, c, d, sy, nm, ab) {
+function MiniKanrenState(s, c, d, ty, ab) {
     this.substitution = s;
     this.counter = c;
     this.diseq = d;
-    this.symbols = sy;
-    this.numbers = nm;
+    this.types = ty;
     this.absentee = ab;
 }
-function Mks(s, c, d, sy, nm, ab) { return new MiniKanrenState(s, c, d, sy, nm, ab); }
+function Mks(s, c, d, ty, ab) { return new MiniKanrenState(s, c, d, ty, ab); }
 
 var not_found = [];
 function walk(u, s) {
@@ -44,32 +43,53 @@ function ext_s_check(x, v, s) {
 function eqeq(u, v) {
     return function(mks) {
         var s = unify(u, v, mks.substitution);
-        return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.symbols, mks.numbers, mks.absentee)) : mzero;
+        return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.types, mks.absentee)) : mzero;
     };
 }
 
 function noteqeq(u, v) {
     return function(mks) {
         var d = disequality(u, v, mks.substitution);
-        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.symbols, mks.numbers, mks.absentee)) : mzero;
+        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.types, mks.absentee)) : mzero;
     };
 }
 
-function symbolo(s) {
-    return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, cons(s, mks.symbols), mks.numbers, mks.absentee));
-    };
+function type_check(v, p, s, ty) {
+    var v1 = walk(v, s);
+    if (varp(v1)) {
+        var existing_type = ty.get(v1, false);
+        if(existing_type && existing_type !== p) {
+            return false;
+        } else { // add constraint
+            return ty.set(v1, p);
+        }
+    } else { // ground; run test
+        return p(v1) ? ty : false;
+    }
 }
 
-function numbero(s) {
+function symbolo(s) { return typeo(s, symbolp); }
+function numbero(n) { return typeo(n, numberp); }
+
+function typeo(v, p) {
     return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, cons(s, mks.numbers), mks.absentee));
+        var s = mks.substitution;
+        var ty = mks.types;
+        var ty1 = type_check(v, p, s, ty);
+        if (!ty1) {
+            return mzero;
+        } else if (ty1 === ty) {
+            return unit(mks);
+        } else {
+            var mks1 = Mks(mks.substitution, mks.counter, mks.diseq, ty1, mks.absentee);
+            return normalize_constraint_store(mks1);
+        }
     };
 }
 
 function absento(s, f) {
     return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.symbols, mks.numbers, cons(cons(s, f), mks.absentee)));
+        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee)));
     };
 }
 
@@ -128,48 +148,17 @@ function normalize_constraint_store(mks) {
     var c = mks.counter;
     var d = mks.diseq;
     var dn = null;
-    var sy = mks.symbols;
-    var syn = null;
-    var nm = mks.numbers;
-    var nmn = null;
+    var ty = mks.types;
+    var tyn = Immutable.Map();
     var abs = mks.absentee;
     var absn = null;
 
-    // Normalize the symbol set
-    while(sy !== null) {
-        var i = walk(sy.car, s);
-        sy = sy.cdr;
-
-        if (varp(i)) {
-            syn = cons(i, syn);
-        }
-        else if(symbolp(i)) {
-            continue;
-        }
-        else {
-            return mzero;
-        }
-    }
-
-    // Normalize the number set
-    // ensure disjointness of symbols and numbers
-    while(nm !== null) {
-        var i1 = walk(nm.car, s);
-        nm = nm.cdr;
-
-        if (varp(i1)) {
-            if(anyp(function(j) { return vareq(j, i1); }, syn)) {
-                return mzero;
-            }
-            nmn = cons(i1, nmn);
-        }
-        else if(numberp(i1)) {
-            continue;
-        }
-        else {
-            return mzero;
-        }
-    }
+    // Normalize the type constraints
+    ty.forEach(function(p, v) {
+        tyn = type_check(v, p, s, tyn);
+        return tyn;
+    });
+    if (!tyn) { return mzero; }
 
     // normalize the disequality constraints
     while(d !== null) {
@@ -212,13 +201,13 @@ function normalize_constraint_store(mks) {
         // forget constraint, it can never fail
     }
 
-    return unit(Mks(s, c, dn, syn, nmn, absn));
+    return unit(Mks(s, c, dn, tyn, absn));
 }
 
 function call_fresh(f) {
     return function(mks) {
         var c = mks.counter;
-        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.symbols, mks.numbers, mks.absentee));
+        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.types, mks.absentee));
     };
 }
 

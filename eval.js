@@ -154,7 +154,7 @@ function VeneerVM() {
                               var var1 = mkvar(e_c.cdr);
                               var retrieve = function(_) { return function(_) { return var1; }; };
                               return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr + 1); });
-        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, null, null, null));
+        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null));
     }
 
     function eval0(exp, env) {
@@ -238,7 +238,7 @@ function VeneerVM() {
                             return c + 1;
                         });
 
-                        return body1(args1.concat(cenv))(Mks(mks.substitution, c1, mks.diseq, mks.symbols, mks.numbers, mks.absentee));
+                        return body1(args1.concat(cenv))(Mks(mks.substitution, c1, mks.diseq, mks.types, mks.absentee));
                     };
                 };
             case intern("lambda"):
