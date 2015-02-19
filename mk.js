@@ -299,6 +299,36 @@ function reify_name(n) {
     return { toString: function() { return ["_", n].join("."); } };
 }
 
+function query_map(qm, mks) {
+    var s = mks.substitution;
+    var d = mks.diseq;
+
+    var q = reify(cons(qm, d), s);
+    var result = foldl(q.car, [], function(m, a_v) {
+        return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
+    });
+
+    return result.join("") + reify_diseqs(q.cdr, s);
+}
+
+function reify_diseqs(dq, s) {
+    var present = function(dd) {
+        // dd is a disjunction of disequalities
+        var diseqs = map(function(a){ return list(intern("=/="),a.car,a.cdr); }, dd);
+        if (length(diseqs) > 1) {
+            return pretty_print(cons(intern("or"), diseqs));
+        } else if (diseqs !== null) {
+            return pretty_print(diseqs.car);
+        } else {
+            return null;
+        }
+    };
+    return (dq !== null) ?
+        (["{"]
+         .concat(intersperse_map(dq, present, ", "))
+         .concat(["}\n"]).join("")) :
+        "";
+}
 
 function intersperse_map(l, f, sep) {
     var m = [];
@@ -309,36 +339,6 @@ function intersperse_map(l, f, sep) {
         l = l.cdr;
     }
     return m;
-}
-
-function query_map(qm, d, s) {
-    var q = reify(cons(qm, d), s);
-    var result = foldl(q.car, [], function(m, a_v) {
-        return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
-    });
-
-    if(false) {
-        return result;
-    }
-    else {
-        var present = function(dd) {
-            // dd is a disjunction of disequalities
-            var diseqs = map(function(a){ return list(intern("=/="),a.car,a.cdr); }, dd);
-            if (length(diseqs) > 1) {
-                return pretty_print(cons(intern("or"), diseqs));
-            } else if (diseqs !== null) {
-                return pretty_print(diseqs.car);
-            } else {
-                return null;
-            }
-        };
-        if(q.cdr !== null) {
-            result = result.concat(["{"]);
-            result = result.concat(intersperse_map(q.cdr, present, ", "));
-            result = result.concat(["}", "\n"]);
-        }
-        return result;
-    }
 }
 
 function build_num(n) {

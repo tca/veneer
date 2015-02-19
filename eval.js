@@ -334,10 +334,8 @@ function VeneerVM() {
     function query_stream(q, qenv, mks) {
         var $ = q(mks);
         var run_queries = function(mks) {
-            var s = mks.substitution;
-            var d = mks.diseq;
             var qm = map(function(p) { return cons(p.car.string, p.cdr()()); }, qenv);
-            return query_map(qm, d, s).join("");
+            return query_map(qm, mks);
         };
         return map_stream(run_queries, $);
     }
