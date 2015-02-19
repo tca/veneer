@@ -38,14 +38,14 @@ function Ref(v) {
 function ref(v) { return new Ref(v); }
 
 function anyp(pred, xs) {
-    while(xs != null) {
+    while(xs !== null) {
         if (pred(xs.car)) { return xs.car; }
         else { xs = xs.cdr; }
     } return false;
 }
 
 function assp(pred, xs) {
-    while(xs != null) {
+    while(xs !== null) {
         if (pred(xs.car.car)) { return xs.car; }
         else { xs = xs.cdr; }
     } return false;
@@ -53,12 +53,12 @@ function assp(pred, xs) {
 
 function length(lst) {
     var memo = 0;
-    while(lst != null) { memo++; lst = lst.cdr; }
+    while(lst !== null) { memo++; lst = lst.cdr; }
     return memo;
 }
 
 function reverse_aux(lst, memo) {
-    while(lst != null) {
+    while(lst !== null) {
         memo = cons(lst.car, memo);
         lst = lst.cdr;
     } return memo;
@@ -77,7 +77,7 @@ function array_to_list(arr) {
 
 function map(fn, lst) {
     var memo = [];
-    while(lst != null) {
+    while(lst !== null) {
         memo.push(fn(lst.car));
         lst = lst.cdr;
     } return array_to_list(memo);
@@ -88,18 +88,18 @@ function list() {
 }
 
 function foldl(xs, m, fn) {
-    while(xs != null) {
+    while(xs !== null) {
         m = fn(m, xs.car);
         xs = xs.cdr;
     } return m;
 }
 
 function foldr(xs, m, fn) {
-    return (xs == null) ? m : fn(xs.car, foldr(xs.cdr, m, fn));
+    return (xs === null) ? m : fn(xs.car, foldr(xs.cdr, m, fn));
 }
 
 function assq(x, xs) {
-    while(xs != null) {
+    while(xs !== null) {
         if (x === xs.car.car) { return xs.car; }
         else { xs = xs.cdr; }
     } return false;
