@@ -312,8 +312,10 @@ function reify_name(n) {
 
 function intersperse_map(l, f, sep) {
     var m = [];
-    while(l != null) {
-        m = m.concat([f(l.car),(l.cdr == null) ? "" : sep]);
+    var r;
+    while(l !== null) {
+        r = f(l.car);
+        m = r === null ? m : m.concat([r, (l.cdr === null ? "" : sep)]);
         l = l.cdr;
     }
     return m;
@@ -331,11 +333,20 @@ function query_map(qm, d, s) {
     else {
         var present = function(dd) {
             // dd is a disjunction of disequalities
-            return pretty_print(cons(intern("or"),map(function(a){return list(intern("=/="),a.car,a.cdr)},dd)));
+            var diseqs = map(function(a){ return list(intern("=/="),a.car,a.cdr); }, dd);
+            if (length(diseqs) > 1) {
+                return pretty_print(cons(intern("or"), diseqs));
+            } else if (diseqs !== null) {
+                return pretty_print(diseqs.car);
+            } else {
+                return null;
+            }
         };
-        result = result.concat(["{"]);
-        result = result.concat(intersperse_map(q.cdr, present, ","));
-        result = result.concat(["}", "\n"]);
+        if(q.cdr !== null) {
+            result = result.concat(["{"]);
+            result = result.concat(intersperse_map(q.cdr, present, ", "));
+            result = result.concat(["}", "\n"]);
+        }
         return result;
     }
 }
