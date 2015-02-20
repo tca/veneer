@@ -44,6 +44,10 @@ function anyp(pred, xs) {
     } return false;
 }
 
+function memq(x, xs) {
+    return anyp(function(y) { return x === y; }, xs);
+}
+
 function assp(pred, xs) {
     while(xs !== null) {
         if (pred(xs.car.car)) { return xs.car; }
@@ -131,7 +135,7 @@ function pretty_print(x) {
                 break;
             }
         } return ["(", memo.join(" "), ")"].join("");
-    } else if (x && x.hasOwnProperty("toString") && typeof x.toString === "function") {
+    } else if (x && x.toString && typeof x.toString === "function") {
         return x.toString();
     } else {
         return JSON.stringify(x);
