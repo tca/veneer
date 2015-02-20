@@ -290,22 +290,34 @@ function reify_name(n) {
     return { toString: function() { return ["_", n].join("."); } };
 }
 
+function pred_to_tag(p) {
+    return assq(p, list(cons(symbolp, intern("sym")),
+                        cons(numberp, intern("num")))).cdr;
+}
+
 function query_map(qm, mks) {
     var s = mks.substitution;
     var d = mks.diseq;
+    var t = mks.types;
+    // convert the type store to alist
+    var t1 = t.reduce(function(m, v, k) { return cons(cons(k, v), m); }, null);
 
-    var q = reify(cons(qm, d), s);
-    var result = foldl(q.car, [], function(m, a_v) {
+    var sq1 = walk_star(qm, s);
+    var dq1 = walk_star(d, s);
+    var tq1 = walk_star(t1, s);
+    var q = walk_star(list(sq1, dq1, tq1), reify_s(list(sq1, dq1, tq1), Immutable.Map()));
+
+    return print_constraints(q.car, q.cdr.car, q.cdr.cdr.car, s);
+}
+
+function print_constraints(sq, dq, tq, s) {
+    var subs = foldl(sq, [], function(m, a_v) {
         return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
     });
 
-    return result.join("") + reify_diseqs(q.cdr, s);
-}
-
-function reify_diseqs(dq, s) {
-    var present = function(dd) {
+    var present_d = function(dd) {
         // dd is a disjunction of disequalities
-        var diseqs = map(function(a){ return list(intern("=/="),a.car,a.cdr); }, dd);
+        var diseqs = map(function(a){ return list(intern("=/="), a.car, a.cdr); }, dd);
         if (length(diseqs) > 1) {
             return pretty_print(cons(intern("or"), diseqs));
         } else if (diseqs !== null) {
@@ -314,11 +326,17 @@ function reify_diseqs(dq, s) {
             return null;
         }
     };
-    return (dq !== null) ?
-        (["{"]
-         .concat(intersperse_map(dq, present, ", "))
+    var present_t = function(tt) {
+        return pretty_print(list(pred_to_tag(tt.cdr), tt.car));
+    }
+    return (dq !== null || tq !== null) ?
+        (subs
+         .concat(["{"])
+         .concat(intersperse_map(dq, present_d, ", "))
+         .concat([", "])
+         .concat(intersperse_map(tq, present_t, ", "))
          .concat(["}\n"]).join("")) :
-        "";
+        subs.join("");
 }
 
 function intersperse_map(l, f, sep) {
