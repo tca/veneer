@@ -105,10 +105,14 @@ function VeneerVM() {
             case intern("fresh"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
-                var fn = list(intern("lambda"), bindings, cons(intern("conj"), body));
-                var body1 = desugar(fn, env);
-                var len = length(bindings);
-                return list(intern("apply/fresh-n"), len, body1);
+                if (bindings === null) {
+                    return desugar(cons(intern("conj"), body), env);
+                } else {
+                    var fn = list(intern("lambda"), bindings, cons(intern("conj"), body));
+                    var body1 = desugar(fn, env);
+                    var len = length(bindings);
+                    return list(intern("apply/fresh-n"), len, body1);
+                }
             case intern("lambda"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
@@ -289,7 +293,8 @@ function VeneerVM() {
                 toplevel[exp.cdr.car.string] = result;
                 return function(cenv) { return true; };
             case intern("quote"):
-                return function(cenv) { return exp.cdr.car; };
+                var re = function(cenv) { return exp.cdr.car; };
+                return re;
             case intern("zzz"):
                 var e1 = eval0(exp.cdr.car, env);
                 return function(cenv) { return function(mks) { return function() { return e1(cenv)(mks); }; }; };
@@ -311,18 +316,10 @@ function VeneerVM() {
                 var closure_env = map(function(v) { return eval0(v, env); }, exp.frees);
                 var len = length(closure_env);
                 var closure_env_build = function(cenv) {
-                    var new_env = new Array(len);
-                    var e = closure_env;
-                    var i = 0;
-                    while(e !== null) {
-                        new_env[i++] = e.car(cenv);
-                        e = e.cdr;
-                    }
-                    return new_env;
+                    return build_env(len, closure_env, cenv);
                 };
                 var body1 = eval0(body, env1);
                 var closure = function(cenv) { return cons(body1, closure_env_build(cenv)); };
-                closure.closure = true;
                 return closure;
             case intern("apply/fresh-n"):
                 var bindings = exp.cdr.car;
@@ -384,7 +381,8 @@ function VeneerVM() {
                 throw "unkown exp: " + pretty_print(exp);
             }
         } else if(constantp(exp)) {
-            return function(cenv) { return exp; };
+            var re = function(cenv) { return exp; };
+            return re;
         } else if(symbolp(exp)) {
             var v = lookup_calc(exp, env);
             if (v) {
@@ -409,6 +407,19 @@ function VeneerVM() {
 
     function veval(exp, env) {
         return eval0(exp, env)([]);
+    }
+
+
+
+    function build_env(len, closure_env, cenv) {
+        var new_env = new Array(len);
+        var e = closure_env;
+        var i = 0;
+        while(e !== null) {
+            new_env[i++] = e.car(cenv);
+            e = e.cdr;
+        }
+        return new_env;
     }
 
     function fresh_n(n, c) {
