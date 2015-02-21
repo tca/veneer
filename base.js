@@ -61,6 +61,11 @@ function length(lst) {
     return memo;
 }
 
+function nth(xs, n) {
+    while(--n > 0) { xs = xs.cdr; }
+    return xs.car;
+}
+
 function reverse_aux(lst, memo) {
     while(lst !== null) {
         memo = cons(lst.car, memo);

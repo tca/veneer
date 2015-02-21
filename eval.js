@@ -88,7 +88,7 @@ function VeneerVM() {
                 } else {
                     var e1 = list(intern("zzz"), exp.cdr.car);
                     var e2 = cons(intern("conj"), exp.cdr.cdr);
-                    return desugar(list(intern("conj%"), e1, e2), env);
+                    return desugar(list(intern("conj/2"), e1, e2), env);
                 }
             case intern("disj"):
                 if (exp.cdr == null) { throw "error: empty disj"; }
@@ -98,7 +98,7 @@ function VeneerVM() {
                 } else {
                     var e1 = list(intern("zzz"), exp.cdr.car);
                     var e2 = cons(intern("disj"), exp.cdr.cdr);
-                    return desugar(list(intern("disj%"), e1, e2), env);
+                    return desugar(list(intern("disj/2"), e1, e2), env);
                 }
             case intern("begin"):
                 return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
@@ -119,19 +119,14 @@ function VeneerVM() {
                 var env1 = foldl(bindings, env, augment_env);
                 var body1 = desugar(cons(intern("begin"), body), env1);
                 return list(exp.car, exp.cdr.car, body1);
-            case intern("conj%"):
-            case intern("disj%"):
-            case intern("cons"):
             case intern("list"):
-            case intern("=="):
-            case intern("=/="):
-            case intern("symbolo"):
-            case intern("numbero"):
-            case intern("absento"):
-            case intern("build-num"):
                 return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
             default:
-                throw "unkown exp: " + pretty_print(exp);
+                if(builtins.hasOwnProperty(exp.car.string)) {
+                    return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
+                } else {
+                    throw "unkown exp: " + pretty_print(exp);
+                }
             }
         } else if(constantp(exp)) {
             return exp;
@@ -186,8 +181,6 @@ function VeneerVM() {
             // builtins
             case intern("begin"):
             case intern("zzz"):
-            case intern("conj%"):
-            case intern("disj%"):
             case intern("apply/fresh-n"):
                 return cons(exp.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.cdr));
             default:
@@ -201,17 +194,12 @@ function VeneerVM() {
             if (lookup(exp, env)) { extend_boxed(fenv, exp, exp); return exp; }
             switch(exp) {
             // builtins
-            case intern("cons"):
             case intern("list"):
-            case intern("=="):
-            case intern("=/="):
-            case intern("symbolo"):
-            case intern("numbero"):
-            case intern("absento"):
-            case intern("build-num"):
                 return exp;
             default: // free variables
-                if(fenv) {
+                if (builtins.hasOwnProperty(exp.string)) {
+                    return exp;
+                } else if(fenv) {
                     var v = lookup(exp, fenv.get());
                     if (v) { return v; }
                     var gen = gensym(exp.string);
@@ -330,48 +318,17 @@ function VeneerVM() {
                         return closure_fn(e1_c1[0].concat(closure_env))(mks1);
                     };
                 };
-            case intern("conj%"):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return conj(e1(cenv), e2(cenv)); };
-            case intern("disj%"):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return disj(e1(cenv), e2(cenv)); };
-            // these are builtin functions that we want to call directly instead of building a cenv
-            case intern("cons"):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return cons(e1(cenv), e2(cenv)); };
             case intern("list"):
                 var args = map(function(e) { return eval0(e, env); }, exp.cdr);
                 return function(cenv) {
                     return map(function(a) { return a(cenv); }, args);
                 };
-            case intern("=="):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return eqeq(e1(cenv), e2(cenv)); };
-            case intern("=/="):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return noteqeq(e1(cenv), e2(cenv)); };
-            case intern("symbolo"):
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return symbolo(e1(cenv)); };
-            case intern("numbero"):
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return numbero(e1(cenv)); };
-            case intern("absento"):
-                var e1 = eval0(exp.cdr.car, env);
-                var e2 = eval0(exp.cdr.cdr.car, env);
-                return function(cenv) { return absento(e1(cenv), e2(cenv)); };
-            case intern("build-num"):
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return build_num(e1(cenv)); };
-
             default:
-                throw "unkown exp: " + pretty_print(exp);
+                if(builtins.hasOwnProperty(exp.car.string)) {
+                    return builtins[exp.car.string](exp.cdr, env, eval0);
+                } else {
+                    throw "unkown exp: " + pretty_print(exp);
+                }
             }
         } else if(constantp(exp)) {
             var re = function(cenv) { return exp; };
@@ -396,6 +353,32 @@ function VeneerVM() {
         } else {
             throw "unkown exp: " + pretty_print(exp);
         }
+    }
+
+    var builtins = new Object(null);
+    builtins["cons"] = generate_fn_code("cons", 2);
+    builtins["conj/2"] = generate_fn_code("conj", 2);
+    builtins["disj/2"] = generate_fn_code("disj", 2);
+    builtins["=="] = generate_fn_code("eqeq", 2);
+    builtins["=/="] = generate_fn_code("noteqeq", 2);
+    builtins["symbolo"] = generate_fn_code("symbolo", 1);
+    builtins["numbero"] = generate_fn_code("numbero", 1);
+    builtins["absento"] = generate_fn_code("absento", 2);
+    builtins["build-num"] = generate_fn_code("build_num", 1);
+
+    function generate_fn_code(name, arity) {
+        var c = 0;
+        var evalers = [];
+        var callers = [];
+
+        for(c = 0; c < arity; c++) {
+            evalers = evalers.concat(["var e", c, " = eval0(nth(args, ", c+1, "), env);\n"]);
+            callers = callers.concat([["e", c, "(cenv)"].join("")]);
+        }
+
+        var args_evald = evalers.join("");
+        var return_val = ["return function(cenv) { return ", name, "(", callers.join(", "), "); };"].join("");
+        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 
     function veval(exp, env) {
