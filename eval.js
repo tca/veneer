@@ -275,14 +275,7 @@ function VeneerVM() {
                     var clos1 = clos(cenv);
                     var fn = clos1.car;
                     var closure_env = clos1.cdr;
-
-                    var new_env = new Array(len);
-                    var e = args;
-                    var i = 0;
-                    while(e !== null) {
-                        new_env[i++] = e.car(cenv);
-                        e = e.cdr;
-                    }
+                    var new_env = build_env(len, args, cenv);
                     return fn(new_env.concat(closure_env));
                 };
             }
@@ -408,18 +401,14 @@ function VeneerVM() {
     function veval(exp, env) {
         return eval0(exp, env)([]);
     }
-
-
-
-    function build_env(len, closure_env, cenv) {
+    
+    function build_env(len, e, cenv) {
         var new_env = new Array(len);
-        var e = closure_env;
         var i = 0;
         while(e !== null) {
             new_env[i++] = e.car(cenv);
             e = e.cdr;
-        }
-        return new_env;
+        } return new_env;
     }
 
     function fresh_n(n, c) {
