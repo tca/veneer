@@ -245,26 +245,17 @@ function VeneerVM() {
     function eval0(exp, env) {
         if(pairp(exp)) {
             // application
-            var clos = false;
-            if(symbolp(exp.car)) {
-                if(lookup(exp.car, env) || toplevel.hasOwnProperty(exp.car.string)) {
-                    clos = eval0(exp.car, env);
-                }
-            } else if (pairp(exp.car)) {
-                clos = eval0(exp.car, env);
-            }
-
-            if(clos) {
+            if((symbolp(exp.car) && (lookup(exp.car, env)
+                                     || toplevel.hasOwnProperty(exp.car.string)))
+               || pairp(exp.car)) {
+                var clos = eval0(exp.car, env);
                 var args = foldl(exp.cdr, null, function(m, e) {
                     return cons(eval0(e, env), m);
                 });
                 var len = length(args);
                 return function(cenv) {
                     var clos1 = clos(cenv);
-                    var fn = clos1.car;
-                    var closure_env = clos1.cdr;
-                    var new_env = build_env(len, args, cenv);
-                    return fn(new_env.concat(closure_env));
+                    return clos1.car(build_env(len, args, cenv).concat(clos1.cdr));
                 };
             }
             // special forms & builtins
@@ -274,8 +265,7 @@ function VeneerVM() {
                 toplevel[exp.cdr.car.string] = result;
                 return function(cenv) { return true; };
             case intern("quote"):
-                var re = function(cenv) { return exp.cdr.car; };
-                return re;
+                return function(cenv) { return exp.cdr.car; };;
             case intern("zzz"):
                 var e1 = eval0(exp.cdr.car, env);
                 return function(cenv) { return function(mks) { return function() { return e1(cenv)(mks); }; }; };
@@ -285,39 +275,26 @@ function VeneerVM() {
                     var e1 = eval0(exp.cdr.car, env);
                     return e1;
                 } else {
-                    var e1 = eval0(exp.cdr.car, env);
-                    var e2 = eval0(cons(intern("begin"), exp.cdr.cdr), env);
-                    return function(cenv) { e1(cenv); return e2(cenv); };
+                    return generate_begin_code(length(exp.cdr))(exp.cdr, env, eval0);
                 }
             case intern("lambda"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr.car;
+
                 var free_env = foldl(reverse(exp.frees), null, augment_env);
                 var env1 = foldl(bindings, free_env, augment_env);
-                var closure_env = map(function(v) { return eval0(v, env); }, exp.frees);
-                var len = length(closure_env);
-                var closure_env_build = function(cenv) {
-                    return build_env(len, closure_env, cenv);
-                };
-                var body1 = eval0(body, env1);
-                var closure = function(cenv) { return cons(body1, closure_env_build(cenv)); };
+
+                var len = length(exp.frees);
+                var free_env1 = map(function(v) { return eval0(v, env); }, exp.frees);
+                var closure_body = eval0(body, env1);
+                var closure_env_build = function(cenv) { return build_env(len, free_env1, cenv); };
+                var closure = function(cenv) { return cons(closure_body, closure_env_build(cenv)); };
                 return closure;
             case intern("apply/fresh-n"):
-                var bindings = exp.cdr.car;
                 var len = exp.cdr.car;
                 var fn = exp.cdr.cdr.car;
                 var closure = eval0(fn, env); 
-                return function(cenv) {
-                    var closure1 = closure(cenv);
-                    var closure_env = closure1.cdr;
-                    var closure_fn = closure1.car;
-                    return function(mks) {
-                        var c = mks.counter;
-                        var e1_c1 = fresh_n(len, c);
-                        var mks1 = Mks(mks.substitution, e1_c1[1], mks.diseq, mks.types, mks.absentee);
-                        return closure_fn(e1_c1[0].concat(closure_env))(mks1);
-                    };
-                };
+                return function(cenv) { return apply_fresh(len, closure, cenv); };
             case intern("list"):
                 var args = map(function(e) { return eval0(e, env); }, exp.cdr);
                 return function(cenv) {
@@ -331,21 +308,16 @@ function VeneerVM() {
                 }
             }
         } else if(constantp(exp)) {
-            var re = function(cenv) { return exp; };
-            return re;
+            return function(cenv) { return exp; };
         } else if(symbolp(exp)) {
             var v = lookup_calc(exp, env);
             if (v) {
                 return v;
             } else if(toplevel.hasOwnProperty(exp.string)) {
-                var mbox = ref(function() {
-                    var cache = toplevel[exp.string];
-                    mbox.set(function() { return cache; });
-                    return cache;
-                });
+                var cache = not_found;
                 return function(cenv) {
-                    var val = mbox.get()();
-                    return val(cenv);
+                    if (cache === not_found) { cache = toplevel[exp.string](); }
+                    return cache;
                 };
             } else {
                 throw "unbound variable: " + pretty_print(exp);
@@ -381,6 +353,22 @@ function VeneerVM() {
         return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 
+    function generate_begin_code(arity) {
+        var c = 0;
+        var evalers = [];
+        var callers = [];
+
+        for(c = 0; c < arity; c++) {
+            evalers = evalers.concat(["var e", c, " = eval0(nth(args, ", c+1, "), env);\n"]);
+            var prefix = c < arity ? "" : "return ";
+            callers = callers.concat([[prefix, "e", c, "(cenv)"].join("")]);
+        }
+
+        var args_evald = evalers.join("");
+        var return_val = ["return function(cenv) { ", callers.join("; "), " };"].join("");
+        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
+    }
+
     function veval(exp, env) {
         return eval0(exp, env)([]);
     }
@@ -399,6 +387,18 @@ function VeneerVM() {
         while(n-- > 0) {
             m[n] = mkvar(c++);
         } return [m, c];
+    }
+
+    function apply_fresh(len, closure, cenv) {
+        var closure1 = closure(cenv);
+        var closure_env = closure1.cdr;
+        var closure_fn = closure1.car;
+        return function(mks) {
+            var c = mks.counter;
+            var e1_c1 = fresh_n(len, c);
+            var mks1 = Mks(mks.substitution, e1_c1[1], mks.diseq, mks.types, mks.absentee);
+            return closure_fn(e1_c1[0].concat(closure_env))(mks1);
+        };
     }
 
     function map_stream(fn, stream) {
