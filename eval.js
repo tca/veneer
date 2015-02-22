@@ -10,13 +10,13 @@ function VeneerVM() {
 
     function quote_desugar(exp) {
         if (pairp(exp)) {
-            return list(intern("cons"), quote_desugar(exp.car), quote_desugar(exp.cdr));
+            return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
         } else if (exp == null) {
-            return list(intern("quote"), null);
+            return meta(list(intern("quote"), null), { tag: "quoted" });
         }else if(constantp(exp)) {
-            return exp;
+            return meta(exp, {tag:"const"});
         } else {
-            return list(intern("quote"), exp);
+            return meta(list(intern("quote"), exp), { tag: "quoted" });
         }
     }
 
@@ -41,42 +41,45 @@ function VeneerVM() {
         }
     }
 
+    function Meta(val, meta) {
+        this.val = val;
+        this.meta = meta || {};
+    }
+    function meta(v, meta) { return new Meta(v, meta); }
+
     function desugar(exp, env) {
+        if(exp instanceof Meta) { return exp; }
         if(pairp(exp)) {
             // application
             var app = false;
-            if(symbolp(exp.car)) {
-                if(lookup(exp.car, env) || toplevel.hasOwnProperty(exp.car.string)) {
-                    app = true;
-                }
-            } else if (pairp(exp.car)) {
-                app = true;
-            }
-            if(app) {
-                var fn = desugar(exp.car, env);
-                var args = map(function(e) { return desugar(e, env); }, exp.cdr);
-                var exp1 = cons(fn, args);
-                return exp1;
+            if(symbolp(exp.car) && (lookup(exp.car, env) || toplevel.hasOwnProperty(exp.car.string))
+               || pairp(exp.car)) {
+                return meta(map(function(e) { return desugar(e, env); }, exp),
+                            { tag: "app" });
             }
             // special forms & builtins
             switch(exp.car) {
             case intern("define"):
+                var name;
+                var body;
                 if(pairp(exp.cdr.car)) {
                     // (define (x y z) f) => (define x (lambda (y z) f))
-                    var name = exp.cdr.car.car;
-                    var args = exp.cdr.car.cdr;
-                    var body = exp.cdr.cdr;
-                    var fn = cons(intern("lambda"), cons(args, body));
-                    return list(exp.car, name,  desugar(fn, env));
+                    name = exp.cdr.car.car;
+                    body = cons(intern("lambda"), cons(exp.cdr.car.cdr, exp.cdr.cdr));
                 } else {
-                    return list(exp.car, exp.cdr.car, desugar(exp.cdr.cdr.car, env));
+                    name = exp.cdr.car;
+                    body = exp.cdr.cdr.car;
                 }
+                return meta(list(exp.car, name,  desugar(body, env)), { tag: "define" });
             case intern("quote"):
-                return quote_desugar(exp.cdr.car);
+                var val = quote_desugar(exp.cdr.car);
+                // val.meta.constp = true;
+                return val;
             case intern("quasiquote"):
-                return quasiquote_desugar(exp.cdr.car, 1, env);
+                return desugar(quasiquote_desugar(exp.cdr.car, 1, env), env);
             case intern("zzz"):
-                return list(exp.car, desugar(exp.cdr.car, env));
+                return meta(list(exp.car, desugar(exp.cdr.car, env)),
+                            { tag: "zzz" });
             case intern("conde"):
                 var clauses = map(function(row) { return cons(intern("conj"), row); }, exp.cdr);
                 return desugar(cons(intern("disj"), clauses), env);
@@ -101,7 +104,8 @@ function VeneerVM() {
                     return desugar(list(intern("disj/2"), e1, e2), env);
                 }
             case intern("begin"):
-                return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
+                return meta(cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr)),
+                            { tag: "begin" });
             case intern("fresh"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
@@ -110,30 +114,34 @@ function VeneerVM() {
                 } else {
                     var fn = list(intern("lambda"), bindings, cons(intern("conj"), body));
                     var body1 = desugar(fn, env);
-                    var len = length(bindings);
-                    return list(intern("apply/fresh-n"), len, body1);
+                    var len = desugar(length(bindings), env);
+                    return meta(list(intern("apply/fresh-n"), len, body1),
+                                { tag: "fresh" });
                 }
             case intern("lambda"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
                 var env1 = foldl(bindings, env, augment_env);
                 var body1 = desugar(cons(intern("begin"), body), env1);
-                return list(exp.car, exp.cdr.car, body1);
-            case intern("list"):
-                return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
+                return meta(list(exp.car, exp.cdr.car, body1),
+                            { tag: "lambda" });
             default:
                 if(builtins.hasOwnProperty(exp.car.string)) {
-                    return cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr));
+                    return meta(cons(meta(exp.car, { tag: "var" }), map(function(f) { return desugar(f, env); }, exp.cdr)),
+                               { tag: "app-builtin" });
+                } else if (exp.car === intern("list")) {
+                    return meta(cons(meta(exp.car, { tag: "var" }), map(function(f) { return desugar(f, env); }, exp.cdr)),
+                                { tag: "app-builtin" });
                 } else {
-                    throw "unkown exp: " + pretty_print(exp);
+                    throw new Error("unkown exp: " + pretty_print(exp));
                 }
             }
         } else if(constantp(exp)) {
-            return exp;
+            return meta(exp, { tag: "const" });
         } else if(symbolp(exp)) {
-            return exp;
+            return meta(exp, { tag: "var" });
         } else {
-            throw "unkown exp: " + pretty_print(exp);
+            throw new Error("unkown exp: " + pretty_print(exp));
         }
     }
 
@@ -156,63 +164,53 @@ function VeneerVM() {
     }
 
     function frees(exp, env, lenv, fenv) {
-        if(pairp(exp)) {
-            switch(exp.car) {
-            // special forms & macros
-            case intern("define"):
-                var a = exp.cdr.car;
-                var dfenv = ref(null);
-                // add self to env once mutable vars works
-                var ret = list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, env, lenv, dfenv));
-                if(dfenv.get() === null) {
-                    return ret;
-                } else {
-                    throw ("free variables in define: " + a.string + pretty_print(map(car, dfenv.get())));
-                }
-            case intern("quote"): return exp;
-            case intern("lambda"):
-                var bindings = exp.cdr.car;
-                var body = exp.cdr.cdr;
-                var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
-                var inner_frees = ref(null);
-
-                var re = cons(exp.car, cons(bindings, map(function(x) {
-                    return frees(x, e1, bindings, inner_frees);
-                }, body)));
-
-                var proper_frees = null;
-                map(function(v) {
-                    if (!memq(v.car, bindings)) {
-                        extend_boxed(fenv, v.car, v.cdr);
-                        proper_frees = cons(v.cdr, proper_frees);
-                    }
-                }, inner_frees.get());
-
-                re.frees = proper_frees;
-                return re;
-            case intern("begin"):
-            case intern("zzz"):
-            case intern("apply/fresh-n"):
-                return cons(exp.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.cdr));
-            // application
-            default:
-                return map(function(x) { return frees(x, env, lenv, fenv); }, exp);
-            }
-        } else if(constantp(exp)) {
+        switch(exp.meta.tag) {
+        case "const": case "quoted":
             return exp;
-        } else if(symbolp(exp)) {
-            // locally bound variables (parameters)
-            if (memq(exp, lenv)) { return exp; }
-            // free variables (bound in ancestor)
-            if (lookup(exp, env)) { return extend_boxed(fenv, exp, exp); }
-            // toplevels
-            if (toplevel.hasOwnProperty(exp.string)) { return exp; }
-            // builtins
-            if (exp === intern("list") || builtins.hasOwnProperty(exp.string)) { return exp; }
-            // query variables (unbound free vars)
-            return extend_boxed(fenv, exp, exp);
-        } else {
-            throw "unkown exp: " + pretty_print(exp);
+        case "define":
+            var name = exp.val.cdr.car;
+            var dfenv = ref(null);
+            // add self to env once mutable vars works, unless toplevel
+            var ret = list(exp.val.car, name, frees(exp.val.cdr.cdr.car, env, lenv, dfenv));
+            if(dfenv.get() === null) {
+                return meta(ret, exp.meta);
+            } else {
+                throw ("free variables in define: " + name.string + pretty_print(map(car, dfenv.get())));
+            }
+        case "lambda":
+            var bindings = exp.val.cdr.car;
+            var body = exp.val.cdr.cdr;
+            var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
+            var inner_frees = ref(null);
+            var proper_frees = null;
+
+            var re = cons(exp.val.car, cons(bindings, map(function(x) {
+                return frees(x, e1, bindings, inner_frees);
+            }, body)));
+
+            map(function(v) {
+                if (!memq(v.car, bindings)) {
+                    extend_boxed(fenv, v.car, v.cdr);
+                    proper_frees = cons(v.cdr, proper_frees);
+                }
+            }, inner_frees.get());
+
+            exp.meta.frees = proper_frees;
+            return meta(re, exp.meta);
+        case "begin": case "zzz": case "fresh":
+            return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
+                        exp.meta);
+        case "app": case "app-builtin":
+            return meta(map(function(x) { return frees(x, env, lenv, fenv); }, exp.val), exp.meta);
+        case "var":
+            if (memq(exp.val, lenv)) { return exp; }
+            if (lookup(exp.val, env)) { return meta(extend_boxed(fenv, exp.val, exp.val), exp.meta); }
+            if (toplevel.hasOwnProperty(exp.val.string)) { return exp; }
+            if (exp.val === intern("list")) { return exp; } // TODO: remove once varargs added
+            if (builtins.hasOwnProperty(exp.val.string)) { return exp; }
+            return meta(extend_boxed(fenv, exp.val, exp.val), exp.meta);
+        default:
+            throw new Error("unkown exp: " + pretty_print(exp.val));
         }
     }
 
@@ -243,86 +241,80 @@ function VeneerVM() {
         return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null));
     }
 
-
     function eval0(exp, env) {
-        if(pairp(exp)) {
-            // application
-            if((symbolp(exp.car) && (lookup(exp.car, env)
-                                     || toplevel.hasOwnProperty(exp.car.string)))
-               || pairp(exp.car)) {
-                var clos = eval0(exp.car, env);
-                var args = foldl(exp.cdr, null, function(m, e) {
-                    return cons(eval0(e, env), m);
-                });
-                var len = length(args);
-                return function(cenv) {
-                    var clos1 = clos(cenv);
-                    return clos1.car(build_env(len, args, cenv).concat(clos1.cdr));
-                };
+        // if(exp.meta.constp) {
+        //     exp.meta.constp = false;
+        //     var val = eval0(exp, env)();
+        //     return function(cenv) { return val; };
+        // }
+        switch(exp.meta.tag) {
+        case "app":
+            var clos = eval0(exp.val.car, env);
+            var args = foldl(exp.val.cdr, null, function(m, e) {
+                return cons(eval0(e, env), m);
+            });
+            var len = length(args);
+            return function(cenv) {
+                var clos1 = clos(cenv);
+                return clos1.car(build_env(len, args, cenv).concat(clos1.cdr));
+            };
+        case "define":
+            var result = eval0(exp.val.cdr.cdr.car, env);
+            toplevel[exp.val.cdr.car.string].set(result());
+            return function(cenv) { return true; };
+        case "quoted":
+            var val = exp.val.cdr.car;
+            return function(cenv) { return val };
+        case "zzz":
+            var e1 = eval0(exp.val.cdr.car, env);
+            return function(cenv) { return function(mks) { return function() { return e1(cenv)(mks); }; }; };
+        case "begin":
+            if (exp.val.cdr == null) { throw new Error("empty begin"); }
+            else if (exp.val.cdr.cdr == null) {
+                var e1 = eval0(exp.val.cdr.car, env);
+                return e1;
+            } else {
+                return generate_begin_code(length(exp.val.cdr))(exp.val.cdr, env, eval0);
             }
-            // special forms & builtins
-            switch(exp.car) {
-            case intern("define"):
-                var result = eval0(exp.cdr.cdr.car, env);
-                toplevel[exp.cdr.car.string].set(result());
-                return function(cenv) { return true; };
-            case intern("quote"):
-                return function(cenv) { return exp.cdr.car; };;
-            case intern("zzz"):
-                var e1 = eval0(exp.cdr.car, env);
-                return function(cenv) { return function(mks) { return function() { return e1(cenv)(mks); }; }; };
-            case intern("begin"):
-                if (exp.cdr == null) { throw "error: empty begin"; }
-                else if (exp.cdr.cdr == null) {
-                    var e1 = eval0(exp.cdr.car, env);
-                    return e1;
-                } else {
-                    return generate_begin_code(length(exp.cdr))(exp.cdr, env, eval0);
-                }
-            case intern("lambda"):
-                var bindings = exp.cdr.car;
-                var body = exp.cdr.cdr.car;
-
-                var free_env = foldl(reverse(exp.frees), null, augment_env);
-                var env1 = foldl(bindings, free_env, augment_env);
-
-                var len = length(exp.frees);
-                var free_env1 = map(function(v) { return eval0(v, env); }, exp.frees);
-                var closure_body = eval0(body, env1);
-                var closure_env_build = function(cenv) { return build_env(len, free_env1, cenv); };
-                var closure = function(cenv) { return cons(closure_body, closure_env_build(cenv)); };
-                return closure;
-            case intern("apply/fresh-n"):
-                var len = exp.cdr.car;
-                var fn = exp.cdr.cdr.car;
-                var closure = eval0(fn, env); 
-                return function(cenv) { return apply_fresh(len, closure, cenv); };
-            case intern("list"):
-                var args = map(function(e) { return eval0(e, env); }, exp.cdr);
+        case "lambda":
+            var bindings = exp.val.cdr.car;
+            var body = exp.val.cdr.cdr.car;
+            var free_env = foldl(reverse(exp.meta.frees), null, augment_env);
+            var env1 = foldl(bindings, free_env, augment_env);
+            var len = length(exp.meta.frees);
+            var free_env1 = map(function(v) { return eval0(meta(v, { tag: "var" }), env); }, exp.meta.frees);
+            var closure_body = eval0(body, env1);
+            var closure_env_build = function(cenv) { return build_env(len, free_env1, cenv); };
+            var closure = function(cenv) { return cons(closure_body, closure_env_build(cenv)); };
+            return closure;
+        case "fresh":
+            var len = exp.val.cdr.car.val;
+            var fn = exp.val.cdr.cdr.car;
+            var closure = eval0(fn, env);
+            return function(cenv) { return apply_fresh(len, closure, cenv); };
+        case "app-builtin":
+            if (exp.val.car.val === intern("list")) {
+                var args = map(function(e) { return eval0(e, env); }, exp.val.cdr);
                 return function(cenv) {
                     return map(function(a) { return a(cenv); }, args);
                 };
-            default:
-                if(builtins.hasOwnProperty(exp.car.string)) {
-                    return builtins[exp.car.string](exp.cdr, env, eval0);
-                } else {
-                    throw "unkown exp: " + pretty_print(exp);
-                }
             }
-        } else if(constantp(exp)) {
-            return function(cenv) { return exp; };
-        } else if(symbolp(exp)) {
-            var v = lookup_calc(exp, env);
+            return builtins[exp.val.car.val.string](exp.val.cdr, env, eval0);
+        case "const":
+            var val = exp.val
+            return function(cenv) { return val; };
+        case "var":
+            var v = lookup_calc(exp.val, env);
             if (v) {
                 return v;
-            } else if(toplevel.hasOwnProperty(exp.string)) {
-                var box = toplevel[exp.string];
+            } else if(toplevel.hasOwnProperty(exp.val.string)) {
+                var box = toplevel[exp.val.string];
                 return function(cenv) { return box.get(); };
             } else {
-                throw "unbound variable: " + pretty_print(exp);
+                throw new Error("unbound variable: " + pretty_print(exp.val));
             }
-        } else {
-            throw "unkown exp: " + pretty_print(exp);
+        default:
+            throw new Error("unkown exp: " + pretty_print(exp.val));
         }
     }
 
