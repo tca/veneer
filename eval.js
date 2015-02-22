@@ -4,7 +4,7 @@ function VeneerVM() {
     function register_define(exp) {
         if (pairp(exp) && exp.car === intern("define")) {
             var a = pairp(exp.cdr.car) ? exp.cdr.car.car : exp.cdr.car;
-            toplevel[a.string] = null;
+            toplevel[a.string] = ref(null);
         }
     }
 
@@ -146,7 +146,13 @@ function VeneerVM() {
 
     function extend_boxed(env, a, v) {
         var envu = env.get();
-        lookup(a, envu) || env.set(cons(cons(a, v), envu));
+        var existing = lookup(a, envu);
+        if (existing) {
+            return existing;
+        } else {
+            env.set(cons(cons(a, v), envu));
+            return v;
+        }
     }
 
     function frees(exp, env, lenv, fenv) {
@@ -155,8 +161,14 @@ function VeneerVM() {
             // special forms & macros
             case intern("define"):
                 var a = exp.cdr.car;
-                toplevel[a.string] = null;
-                return list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, list(cons(a, a)), list(a), null));
+                var dfenv = ref(null);
+                // add self to env once mutable vars works
+                var ret = list(exp.car, exp.cdr.car, frees(exp.cdr.cdr.car, env, lenv, dfenv));
+                if(dfenv.get() === null) {
+                    return ret;
+                } else {
+                    throw ("free variables in define: " + a.string + pretty_print(map(car, dfenv.get())));
+                }
             case intern("quote"): return exp;
             case intern("lambda"):
                 var bindings = exp.cdr.car;
@@ -178,37 +190,27 @@ function VeneerVM() {
 
                 re.frees = proper_frees;
                 return re;
-            // builtins
             case intern("begin"):
             case intern("zzz"):
             case intern("apply/fresh-n"):
                 return cons(exp.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.cdr));
+            // application
             default:
                 return map(function(x) { return frees(x, env, lenv, fenv); }, exp);
             }
         } else if(constantp(exp)) {
             return exp;
         } else if(symbolp(exp)) {
-            // bound variables, for now toplevel is included
-            if (memq(exp, lenv) || toplevel.hasOwnProperty(exp.string)) { return exp; }
-            if (lookup(exp, env)) { extend_boxed(fenv, exp, exp); return exp; }
-            switch(exp) {
+            // locally bound variables (parameters)
+            if (memq(exp, lenv)) { return exp; }
+            // free variables (bound in ancestor)
+            if (lookup(exp, env)) { return extend_boxed(fenv, exp, exp); }
+            // toplevels
+            if (toplevel.hasOwnProperty(exp.string)) { return exp; }
             // builtins
-            case intern("list"):
-                return exp;
-            default: // free variables
-                if (builtins.hasOwnProperty(exp.string)) {
-                    return exp;
-                } else if(fenv) {
-                    var v = lookup(exp, fenv.get());
-                    if (v) { return v; }
-                    var gen = gensym(exp.string);
-                    extend_boxed(fenv, exp, gen);
-                    return gen;
-                } else {
-                    throw "unbound variable: " + exp.string;
-                }
-            }
+            if (exp === intern("list") || builtins.hasOwnProperty(exp.string)) { return exp; }
+            // query variables (unbound free vars)
+            return extend_boxed(fenv, exp, exp);
         } else {
             throw "unkown exp: " + pretty_print(exp);
         }
@@ -262,7 +264,7 @@ function VeneerVM() {
             switch(exp.car) {
             case intern("define"):
                 var result = eval0(exp.cdr.cdr.car, env);
-                toplevel[exp.cdr.car.string] = result;
+                toplevel[exp.cdr.car.string].set(result());
                 return function(cenv) { return true; };
             case intern("quote"):
                 return function(cenv) { return exp.cdr.car; };;
@@ -314,11 +316,8 @@ function VeneerVM() {
             if (v) {
                 return v;
             } else if(toplevel.hasOwnProperty(exp.string)) {
-                var cache = not_found;
-                return function(cenv) {
-                    if (cache === not_found) { cache = toplevel[exp.string](); }
-                    return cache;
-                };
+                var box = toplevel[exp.string];
+                return function(cenv) { return box.get(); };
             } else {
                 throw "unbound variable: " + pretty_print(exp);
             }

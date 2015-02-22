@@ -31,9 +31,10 @@ function stringp(t) { return typeof t === "string"; }
 function constantp(t) { return numberp(t) || booleanp(t) || stringp(t); }
 
 function Ref(v) {
-    this.get = function() { return v; };
-    this.set = function(v1) { v = v1; };
+    this.val = v;
 }
+Ref.prototype.get = function() { return this.val; };
+Ref.prototype.set = function(v1) { this.val = v1; };
 
 function ref(v) { return new Ref(v); }
 
