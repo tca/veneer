@@ -78,6 +78,13 @@ function reverse(lst) {
     return reverse_aux(lst, null);
 }
 
+function array_slice_list(arr, from) {
+    var i = arr.length;
+    var memo = null;
+    while(i > from) { memo = cons(arr[--i], memo); }
+    return memo;
+}
+
 function array_to_list(arr) {
     var i = arr.length;
     var memo = null;
