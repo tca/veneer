@@ -36,6 +36,13 @@ function Veneer_v1() {
             setTimeout(function() { errors.removeChild(error); }, 3000);
         }
 
+        var getTime;
+        if (window.performance && window.performance.now && false) {
+            getTime = function() { return window.performance.now(); };
+        } else {
+            getTime = function() { return (new Date()).getTime(); };
+        }
+
         function load_input(inputbox) {
             inputbox = current_input;
             /* var textcontent = inputbox.innerHTML.replace(/<br(\s*)\/*>/ig, '\n') 
@@ -54,9 +61,9 @@ function Veneer_v1() {
                     var button = document.createElement("button");
                     var append_answer = function(focus) {
                         var answered;
-                        var time_before = window.performance.now();
+                        var time_before = getTime();
                         var answer_val = generator();
-                        var run_time = (window.performance.now() - time_before).toFixed(2);
+                        var run_time = (getTime() - time_before).toFixed(2);
                         if (answer_val === null) {
                             answered = "No.";
                             answer_val = "";
