@@ -37,7 +37,7 @@ function Veneer_v1() {
         }
 
         var getTime;
-        if (window.performance && window.performance.now && false) {
+        if (window.performance && window.performance.now) {
             getTime = function() { return window.performance.now(); };
         } else {
             getTime = function() { return (new Date()).getTime(); };
