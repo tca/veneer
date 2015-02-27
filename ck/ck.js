@@ -220,7 +220,6 @@ function run_constraints(mks) {
     // TODO: add loop to run changes added by constraints ?
     var relevant_cs;
     while(p !== null) {
-        if(varp(p.car.cdr)) { p = p.cdr; continue; }
         relevant_cs = cs.get(p.car.car.c, false);
         if (relevant_cs) {
             relevant_cs.forEach(function(ct, cv) {
