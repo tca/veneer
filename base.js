@@ -125,6 +125,8 @@ function assq(x, xs) {
 function pretty_print(x) {
     if (numberp(x)) {
         return x.toString();
+    } else if (booleanp(x)) {
+        return x ? "#t" : "#f";
     } else if (x === null) {
         return "()";
     } else if (typeof x === "string") {
