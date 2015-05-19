@@ -23,6 +23,7 @@ function intern(string) {
     }
 }
 
+function nullp(x) { return x === null; }
 function procedurep(x) { return x instanceof Function; }
 function symbolp(x) { return x instanceof Symbol; }
 function numberp(t) { return typeof t === "number"; }

@@ -122,6 +122,9 @@ function VeneerVM() {
             case intern("begin"):
                 return meta(cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr)),
                             { tag: "begin" });
+            case intern("if"):
+                return meta(cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr)),
+                            { tag: "if" });
             case intern("fresh"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
@@ -194,6 +197,12 @@ function VeneerVM() {
             } else {
                 throw ("free variables in define: " + name.string + pretty_print(map(car, dfenv.get())));
             }
+        case "begin": case "zzz": case "fresh":
+            return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
+                        exp.meta);
+        case "if":
+            return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
+                        exp.meta);
         case "lambda":
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr;
@@ -214,9 +223,6 @@ function VeneerVM() {
 
             exp.meta.frees = proper_frees;
             return meta(re, exp.meta);
-        case "begin": case "zzz": case "fresh":
-            return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
-                        exp.meta);
         case "app": case "app-builtin":
             return meta(map(function(x) { return frees(x, env, lenv, fenv); }, exp.val), exp.meta);
         case "var":
@@ -231,9 +237,6 @@ function VeneerVM() {
         }
     }
 
-    // instead of returning a value, it returns a function that fetches a value
-    // based on the offset of how far it takes to reach the variable
-    // values in the env are expected to be :: offset -> cenv -> value
     function lookup_calc(x, xs) {
         var n = 0;
         while(xs !== null) {
@@ -300,6 +303,11 @@ function VeneerVM() {
             } else {
                 return generate_begin_code(length(exp.val.cdr))(exp.val.cdr, env, eval0);
             }
+        case "if":
+            var t = eval0(exp.val.cdr.car, env);
+            var c = eval0(exp.val.cdr.cdr.car, env);
+            var a = eval0(exp.val.cdr.cdr.cdr.car, env);
+            return function(aenv, cenv) { return t(aenv, cenv) ? c(aenv, cenv) : a(aenv, cenv); };
         case "lambda":
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr.car;
@@ -349,6 +357,15 @@ function VeneerVM() {
 
     var builtins = new Object(null);
     builtins["cons"] = generate_fn_code("cons", 2);
+    builtins["car"] = generate_fn_code("car", 1);
+    builtins["cdr"] = generate_fn_code("cdr", 1);
+    builtins["null?"] = generate_fn_code("nullp", 1);
+    builtins["+"] = generate_fn_code("+", 2, true);
+    builtins["-"] = generate_fn_code("-", 2, true);
+    builtins["="] = generate_fn_code("===", 2, true);
+    builtins["eq?"] = generate_fn_code("===", 2, true);
+    builtins["log"] = generate_fn_code("console.log", 1);
+
     builtins["conj/2"] = generate_fn_code("conj", 2);
     builtins["disj/2"] = generate_fn_code("disj", 2);
     builtins["=="] = generate_fn_code("eqeq", 2);
@@ -358,18 +375,24 @@ function VeneerVM() {
     builtins["absento"] = generate_fn_code("absento", 2);
     builtins["build-num"] = generate_fn_code("build_num", 1);
 
-    function generate_fn_code(name, arity) {
+    function generate_fn_code(name, arity, infixp) {
         var c = 0;
         var evalers = [];
         var callers = [];
 
         for(c = 0; c < arity; c++) {
-            evalers = evalers.concat(["var e", c, " = eval0(nth(args, ", c+1, "), env);\n"]);
+            evalers = evalers.concat(["var e", c, " = eval0(args.car, env);\n"]);
+            evalers = evalers.concat(["args = args.cdr;\n"]);
             callers = callers.concat([["e", c, "(aenv, cenv)"].join("")]);
         }
-
         var args_evald = evalers.join("");
-        var return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };"].join("");
+
+        var return_val;
+        if (infixp === true) {
+            return_val = ["return function(aenv, cenv) { return ", callers[0], " ", name, " ", callers[1], "; };"].join("");
+        } else {
+            return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };"].join("");
+        }
         return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 
