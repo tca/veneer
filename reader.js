@@ -19,17 +19,6 @@ function Stream(string) {
         if (string[this.pos-1] == "\n") { this.line--; }
         this.pos--;
     }
-    this.fork = function() {
-        var fork = new Stream(string);
-        fork.pos = this.pos;
-        fork.line = this.line;
-        return fork;
-    }
-}
-
-function condition(args) {
-    this.resume = args.resume;
-    this.msg = args.msg;
 }
 
 function whitespacep(c) { return /\s+/.test(c); }
@@ -171,17 +160,20 @@ function read_hash(input_stream) {
     }
 }
 
+var readtable = {
+    '"': read_string,
+    "'": read_quoted,
+    "`": read_quasiquoted,
+    ",": read_unquoted,
+    "(": read_list,
+    ";": read_after_comment,
+    "#": read_hash
+    //eof: function(input_stream) { throw eof }
+};
+
 function reader_for(c) {
-    switch(c) {
-    case '"': return read_string;
-    case "'": return read_quoted;
-    case "`": return read_quasiquoted;
-    case ",": return read_unquoted;
-    case "(": return read_list;
-    case ";": return read_after_comment;
-    case "#": return read_hash;
-    case eof: return false;
-    }
+    var reader = readtable[c];
+    if (reader) { return reader; }
     if (whitespacep(c)) { return read_after_whitespace; }
     if (symbolicp(c)) { return read_symbol; }
     return false;
