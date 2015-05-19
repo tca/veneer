@@ -13,7 +13,7 @@ function VeneerVM() {
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
         } else if (exp == null) {
             return meta(list(intern("quote"), null), { tag: "quoted" });
-        }else if(constantp(exp)) {
+        } else if(constantp(exp)) {
             return meta(exp, {tag:"const"});
         } else {
             return meta(list(intern("quote"), exp), { tag: "quoted" });
@@ -24,7 +24,7 @@ function VeneerVM() {
         if (pairp(exp)) {
             if (exp.car === intern("unquote")) {
                 if (n === 1) {
-                    return desugar(exp.cdr.car, env);
+                    return exp.cdr.car;
                 } else {
                     return list(intern("list"), list(intern("quote"), intern("unquote")),
                                 quasiquote_desugar(exp.cdr.car, n - 1, env));
@@ -37,7 +37,7 @@ function VeneerVM() {
                             quasiquote_desugar(exp.cdr, n, env));
             }
         } else {
-            return quote_desugar(exp);
+            return list(intern("quote"), exp);
         }
     }
 
@@ -65,7 +65,6 @@ function VeneerVM() {
     }
 
     function desugar(exp, env) {
-        if(exp instanceof Meta) { return exp; }
         if(pairp(exp)) {
             // application
             var app = false;
