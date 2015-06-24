@@ -153,3 +153,4 @@ function Veneer_v1() {
  
     this.new_vm = function() { return new VeneerVM(); };
 }
+exports = Veneer_v1;
