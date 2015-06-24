@@ -34,8 +34,8 @@ function constantp(t) { return numberp(t) || booleanp(t) || stringp(t); }
 function Ref(v) {
     this.val = v;
 }
-Ref.prototype.get = function() { return this.val; };
-Ref.prototype.set = function(v1) { this.val = v1; };
+Ref.prototype.get = function _ref_get () { return this.val; };
+Ref.prototype.set = function _ref_set (v1) { this.val = v1; };
 
 function ref(v) { return new Ref(v); }
 

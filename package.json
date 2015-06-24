@@ -1,0 +1,25 @@
+{
+  "name": "veneer",
+  "version": "1.0.0",
+  "description": "[Browser based miniKanren editor and REPL](http://tca.github.io/veneer/editor.html)",
+  "main": "veneer.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tca/veneer.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tca/veneer/issues"
+  },
+  "homepage": "https://github.com/tca/veneer",
+  "dependencies": {
+    "event-stream": "^3.3.1"
+  }
+}

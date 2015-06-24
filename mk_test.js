@@ -15,13 +15,14 @@ function sixes(x) {
 
 function node_log(x) { return console.log(require('util').inspect(x, true, 10)); }
 var empty_state = cons(null, 0);
-var test1 = call_fresh(function (q) { return eqeq(q, 5); })(empty_state);
+node_log(empty_state);
+var test1 = call_fresh(function _test1 (q) { return eqeq(q, 5); })(empty_state);
 node_log(test1.car);
 node_log("-----");
 
 var fv;
 var sv;
-var test2 = function(x) {
+var test2 = function _test2 (x) {
     fv = x;
     return fives(x);
 };

@@ -15,6 +15,8 @@ function Mks(s, c, d, ty, ab) { return new MiniKanrenState(s, c, d, ty, ab); }
 var not_found = [];
 function walk(u, s) {
     var pr;
+    // console.log('WALK', arguments);
+    // console.log('WALK store', s);
     while(varp(u)) {
         pr = s.get(u.c, not_found);
         if (pr === not_found) {
@@ -41,14 +43,15 @@ function ext_s_check(x, v, s) {
 }
 
 function eqeq(u, v) {
-    return function(mks) {
+    return function _do_eqeq (mks) {
+        // console.log('eqeq', u, v, mks);
         var s = unify(u, v, mks.substitution);
         return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.types, mks.absentee)) : mzero;
     };
 }
 
 function noteqeq(u, v) {
-    return function(mks) {
+    return function _do_noteqeq (mks) {
         var d = disequality(u, v, mks.substitution);
         return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.types, mks.absentee)) : mzero;
     };
@@ -72,7 +75,7 @@ function symbolo(s) { return typeo(s, symbolp); }
 function numbero(n) { return typeo(n, numberp); }
 
 function typeo(v, p) {
-    return function(mks) {
+    return function _do_typeo (mks) {
         var s = mks.substitution;
         var ty = mks.types;
         var ty1 = type_check(v, p, s, ty);
@@ -88,7 +91,7 @@ function typeo(v, p) {
 }
 
 function absento(s, f) {
-    return function(mks) {
+    return function _do_absento (mks) {
         return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee)));
     };
 }
@@ -97,6 +100,7 @@ function unit(mks) { return cons(mks, mzero); }
 var mzero = null;
 
 function unify(u, v, s) {
+    // console.log('unify', u, v, s);
     var u1 = walk(u, s);
     var v1 = walk(v, s);
     if (varp(u1) && varp(v1) && vareq(u1, v1)) { return s; }
@@ -152,9 +156,12 @@ function normalize_constraint_store(mks) {
     var tyn = Immutable.Map();
     var abs = mks.absentee;
     var absn = null;
+    // console.log("NORMALIZE", mks);
+    // console.log("IMMUTABLE", tyn, Immutable, Immutable.Map, Immutable.Map( ));
+
 
     // Normalize the type constraints
-    ty.forEach(function(p, v) {
+    ty.forEach(function _iter_ty (p, v) {
         tyn = type_check(v, p, s, tyn);
         return tyn;
     });
@@ -205,17 +212,17 @@ function normalize_constraint_store(mks) {
 }
 
 function call_fresh(f) {
-    return function(mks) {
+    return function _call_fresh (mks) {
         var c = mks.counter;
         return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.types, mks.absentee));
     };
 }
 
 function disj(g1, g2) {
-    return function(mks) { return mplus(g1(mks), g2(mks)); };
+    return function _disj (mks) { return mplus(g1(mks), g2(mks)); };
 }
 function conj(g1, g2) {
-    return function(mks) { return bind(g1(mks), g2); };
+    return function _conj (mks) { return bind(g1(mks), g2); };
 }
  
 function mplus($1, $2) {
@@ -232,7 +239,7 @@ function bind($, g) {
     if ($ === null) {
         return mzero;
     } else if (procedurep($)) {
-        return function() { return bind($(), g); };
+        return function _bind_proc () { return bind($(), g); };
     } else {
         return mplus(g($.car), bind($.cdr, g));
     }
@@ -287,7 +294,7 @@ function reify_s(v, s) {
 }
 
 function reify_name(n) {
-    return { toString: function() { return ["_", n].join("."); } };
+    return { toString: function _reify_name_to_s () { return ["_", n].join("."); } };
 }
 
 function pred_to_tag(p) {
@@ -300,7 +307,7 @@ function query_map(qm, mks) {
     var d = mks.diseq;
     var t = mks.types;
     // convert the type store to alist
-    var t1 = t.reduce(function(m, v, k) { return cons(cons(k, v), m); }, null);
+    var t1 = t.reduce(function _reduce_query_map (m, v, k) { return cons(cons(k, v), m); }, null);
 
     var sq1 = walk_star(qm, s);
     var dq1 = walk_star(d, s);
@@ -311,13 +318,13 @@ function query_map(qm, mks) {
 }
 
 function print_constraints(sq, dq, tq, s) {
-    var subs = foldl(sq, [], function(m, a_v) {
+    var subs = foldl(sq, [], function _print_constraints (m, a_v) {
         return m.concat([a_v.car, ": ", pretty_print(a_v.cdr), "\n"]);
     });
 
-    var present_d = function(dd) {
+    var present_d = function _present_d (dd) {
         // dd is a disjunction of disequalities
-        var diseqs = map(function(a){ return list(intern("=/="), a.car, a.cdr); }, dd);
+        var diseqs = map(function _iter_map (a){ return list(intern("=/="), a.car, a.cdr); }, dd);
         if (length(diseqs) > 1) {
             return pretty_print(cons(intern("or"), diseqs));
         } else if (diseqs !== null) {
@@ -326,7 +333,7 @@ function print_constraints(sq, dq, tq, s) {
             return null;
         }
     };
-    var present_t = function(tt) {
+    var present_t = function _present_t (tt) {
         return pretty_print(list(pred_to_tag(tt.cdr), tt.car));
     }
     return (dq !== null || tq !== null) ?

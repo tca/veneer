@@ -500,6 +500,7 @@ function VeneerVM() {
     }
 
     this.reset = function() { toplevel = new Object(null); };
+    this.parse_program = function(text) { return read_program(text); };
     this.eval = function(ast) { return run_program(ast); };
     this.read_eval = function(text) { return run_program(read_program(text)); };
 }
