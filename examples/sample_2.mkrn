@@ -1,0 +1,11 @@
+
+(define (appendo x y z)
+ (conde
+  ((== x '()) (== y z))
+  ((fresh (head xtail ytail ztail)
+    (== x `(,head . ,xtail))
+    (== z `(,head . ,ztail))
+    (appendo xtail y ztail)))))
+
+(appendo left right '(1 2 3 4))
+
