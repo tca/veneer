@@ -6,16 +6,14 @@ var read_program = require('./reader');
 var fs = require('fs');
 var runtime = require('./base');
 // var VeneerVM = require('./veneer');
-console.log('loading');
 
 function inputs (input) {
   var L = [ ];
-  console.log('inputs to inputs', arguments);
   var out = es.through(function (d) { this.queue(d); });
   if (!input) {
     L.push(process.stdin);
   } else {
-    var args = [].slice.apply([], arguments);
+    var args = [].slice.apply(arguments);
     if (args && args.length > 0) {
       L = L.concat(args);
     }
@@ -52,7 +50,10 @@ function get_ast (vm) {
   var line = [ ];
   function iter (data) {
     try {
-      this.queue(vm.parse_program(data));
+      var ast = vm.parse_program(data);
+      if (ast) {
+        this.queue(ast);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -68,14 +69,24 @@ function tap (prefix) {
   return es.map(iter);
 }
 
+function pp (prefix) {
+  function iter (data, next) {
+    console.log(prefix, runtime.pretty_print(data));
+    return next(null, data);
+  }
+  return es.map(iter);
+}
+
 if (!module.parent) {
-  console.log('hello world');
   var vm = new VeneerVM(read_program, runtime);
   console.log(vm);
   es.pipeline(
-    inputs.apply(this, process.argv.slice(3))
+    inputs.apply(this, process.argv.slice(2))
+  // one line at a time will cause unexpected eof or other errors for valid
+  // expressions that continue on the next line.
   , lines( )
   , get_ast(vm)
-  , tap('xxx?')
+  , pp('xxx?')
+  // , tap('xxx?')
   );
 }
