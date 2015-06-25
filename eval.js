@@ -81,11 +81,11 @@ function VeneerVM(reader, runtime, kanren) {
     function infixen (name, $e0, $e1) {
       switch (name) {
         case '-':
-          return $0 - $e1;
+          return $e0 - $e1;
         case '+':
-          return $0 + $e1;
+          return $e0 + $e1;
         case '===':
-          return $0 === $e1;
+          return $e0 === $e1;
         default:
           console.error('bad infixen');
           break;
@@ -412,8 +412,20 @@ function VeneerVM(reader, runtime, kanren) {
             var closure = function(aenv, cenv) { return cons(closure_body, closure_env_build(aenv, cenv)); };
             return closure;
         case "zzz":
-            var e1 = eval0(exp.val.cdr.car, env);
-            return function(aenv, cenv) { return function(mks) { return function() { return e1(aenv, cenv)(mks); }; }; };
+              var e1 = eval0(exp.val.cdr.car, env);
+            return (function _zzz (e1) {
+              // console.log('HUH?', e1);
+              return function _w_1 (aenv, cenv) {
+                // console.log('HUH 2?', e1);
+                return function _w_2 (mks) {
+                  // console.log('HUH 3?', e1);
+                  return function _w_3 () {
+                    // console.log('HUH 4?', e1);
+                    return e1(aenv, cenv)(mks);
+                  };
+                };
+              };
+            })(e1);
         case "fresh":
             var len = exp.val.cdr.car.val;
             var fn = exp.val.cdr.cdr.car;
@@ -476,7 +488,7 @@ function VeneerVM(reader, runtime, kanren) {
         function do_code (args, env, eval0) {
           var $ans = [ ];
           for (c=0; c < arity; c++) {
-            (function (v, i) {
+            (function _iter_eval_arity (v, i) {
               var e0 = eval0(args.car, env);
               args = args.cdr;
               $ans.push(e0);
@@ -484,7 +496,7 @@ function VeneerVM(reader, runtime, kanren) {
           }
 
           function answer (aenv, cenv) {
-            var intermediate = $ans.map(function (e0, i) {
+            var intermediate = $ans.map(function _iter_answers (e0, i) {
               return e0(aenv, cenv);
             });
             if (infixp) {
