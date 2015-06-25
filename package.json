@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/tca/veneer",
   "dependencies": {
-    "event-stream": "^3.3.1"
+    "event-stream": "^3.3.1",
+    "immutable": "^3.7.4"
   }
 }

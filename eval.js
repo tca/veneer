@@ -1,4 +1,5 @@
-function VeneerVM(reader, runtime) {
+var Immutable = require('immutable');
+function VeneerVM(reader, runtime, kanren) {
   var read_program = read_program ? read_program : reader;
 
   var Pair = runtime.Pair;
@@ -34,7 +35,62 @@ function VeneerVM(reader, runtime) {
   var assq = runtime.assq;
   var pretty_print = runtime.pretty_print;
 
+  var Mks = kanren;
+  var Var = kanren.Var;
+  var mkvar = kanren.mkvar;
+  var varp = kanren.varp;
+  var vareq = kanren.vareq;
+  var MiniKanrenState = kanren.MiniKanrenState;
+  var walk = kanren.walk;
+  var occurs_check = kanren.occurs_check;
+  var ext_s_check = kanren.ext_s_check;
+  var eqeq = kanren.eqeq;
+  var noteqeq = kanren.noteqeq;
+  var type_check = kanren.type_check;
+  var symbolo = kanren.symbolo;
+  var numbero = kanren.numbero;
+  var typeo = kanren.typeo;
+  var absento = kanren.absento;
+  var unit = kanren.unit;
+  var unify = kanren.unify;
+  var ext_s_check_prefix = kanren.ext_s_check_prefix;
+  var unify_prefix = kanren.unify_prefix;
+  var disequality = kanren.disequality;
+  var normalize_constraint_store = kanren.normalize_constraint_store;
+  var call_fresh = kanren.call_fresh;
+  var disj = kanren.disj;
+  var conj = kanren.conj;
+  var mplus = kanren.mplus;
+  var bind = kanren.bind;
+  var pull = kanren.pull;
+  var take = kanren.take;
+  var take_all = kanren.take_all;
+  var reify = kanren.reify;
+  var walk_star = kanren.walk_star;
+  var reify_s = kanren.reify_s;
+  var reify_name = kanren.reify_name;
+  var pred_to_tag = kanren.pred_to_tag;
+  var query_map = kanren.query_map;
+  var print_constraints = kanren.print_constraints;
+  var intersperse_map = kanren.intersperse_map;
+  var build_num = kanren.build_num;
+
     var toplevel = new Object(null);
+
+
+    function infixen (name, $e0, $e1) {
+      switch (name) {
+        case '-':
+          return $0 - $e1;
+        case '+':
+          return $0 + $e1;
+        case '===':
+          return $0 === $e1;
+        default:
+          console.error('bad infixen');
+          break;
+      }
+    }
 
     function register_define(exp) {
         if (pairp(exp) && exp.car === intern("define")) {
@@ -415,6 +471,32 @@ function VeneerVM(reader, runtime) {
         var evalers = [];
         var callers = [];
 
+        var func = kanren[name] || runtime[name];
+
+        function do_code (args, env, eval0) {
+          var $ans = [ ];
+          for (c=0; c < arity; c++) {
+            (function (v, i) {
+              var e0 = eval0(args.car, env);
+              args = args.cdr;
+              $ans.push(e0);
+            })(c);
+          }
+
+          function answer (aenv, cenv) {
+            var intermediate = $ans.map(function (e0, i) {
+              return e0(aenv, cenv);
+            });
+            if (infixp) {
+                return infixen.apply(this, [name].concat(intermediate));
+            } else {
+              return func.apply(this, intermediate);
+            }
+          }
+          return answer;
+        }
+        return do_code;
+
         for(c = 0; c < arity; c++) {
             evalers = evalers.concat(["var e", c, " = eval0(args.car, env);\n"]);
             evalers = evalers.concat(["args = args.cdr;\n"]);
@@ -424,10 +506,12 @@ function VeneerVM(reader, runtime) {
 
         var return_val;
         if (infixp === true) {
-            return_val = ["return function(aenv, cenv) { return ", callers[0], " ", name, " ", callers[1], "; };"].join("");
+            return_val = ["\n\treturn function(aenv, cenv) {\n\t\treturn ", callers[0], " ", name, " ", callers[1], "; };\n"].join("");
         } else {
-            return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };"].join("");
+            return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };\n"].join("");
         }
+        console.log('NEW FUNCTION', name, arity, 'fn_code');
+        console.log([args_evald, return_val].join(""));
         return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 
@@ -444,6 +528,8 @@ function VeneerVM(reader, runtime) {
 
         var args_evald = evalers.join("");
         var return_val = ["return function(aenv, cenv) { ", callers.join("; "), " };"].join("");
+        console.log('NEW FUNCTION', name, arity, 'begin_code');
+        console.log([args_evald, return_val].join(""));
         return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 

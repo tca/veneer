@@ -1,3 +1,38 @@
+var runtime = require('./base');
+var Immutable = require('immutable');
+var pairp = runtime.pairp;
+  var car = runtime.car;
+  var cdr = runtime.cdr;
+  var pairp = runtime.pairp;
+  var cons = runtime.cons;
+  var Symbol = runtime.Symbol;
+  var gensym = runtime.gensym;
+  var intern = runtime.intern;
+  var nullp = runtime.nullp;
+  var procedurep = runtime.procedurep;
+  var symbolp = runtime.symbolp;
+  var numberp = runtime.numberp;
+  var booleanp = runtime.booleanp;
+  var stringp = runtime.stringp;
+  var constantp = runtime.constantp;
+  var Ref = runtime.Ref;
+  var ref = runtime.ref;
+  var anyp = runtime.anyp;
+  var memq = runtime.memq;
+  var assp = runtime.assp;
+  var length = runtime.length;
+  var nth = runtime.nth;
+  var reverse_aux = runtime.reverse_aux;
+  var reverse = runtime.reverse;
+  var array_slice_list = runtime.array_slice_list;
+  var array_to_list = runtime.array_to_list;
+  var map = runtime.map;
+  var list = runtime.list;
+  var foldl = runtime.foldl;
+  var foldr = runtime.foldr;
+  var assq = runtime.assq;
+  var pretty_print = runtime.pretty_print;
+
 function Var(c) { this.c = c; }
 function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
@@ -366,3 +401,45 @@ function build_num(n) {
         return null;
     }
 }
+
+exports = module.exports = Mks;
+
+exports.Var = Var;
+exports.mkvar = mkvar;
+exports.varp = varp;
+exports.vareq = vareq;
+exports.MiniKanrenState = MiniKanrenState;
+exports.walk = walk;
+exports.occurs_check = occurs_check;
+exports.ext_s_check = ext_s_check;
+exports.eqeq = eqeq;
+exports.noteqeq = noteqeq;
+exports.type_check = type_check;
+exports.symbolo = symbolo;
+exports.numbero = numbero;
+exports.typeo = typeo;
+exports.absento = absento;
+exports.unit = unit;
+exports.unify = unify;
+exports.ext_s_check_prefix = ext_s_check_prefix;
+exports.unify_prefix = unify_prefix;
+exports.disequality = disequality;
+exports.normalize_constraint_store = normalize_constraint_store;
+exports.call_fresh = call_fresh;
+exports.disj = disj;
+exports.conj = conj;
+exports.mplus = mplus;
+exports.bind = bind;
+exports.pull = pull;
+exports.take = take;
+exports.take_all = take_all;
+exports.reify = reify;
+exports.walk_star = walk_star;
+exports.reify_s = reify_s;
+exports.reify_name = reify_name;
+exports.pred_to_tag = pred_to_tag;
+exports.query_map = query_map;
+exports.print_constraints = print_constraints;
+exports.intersperse_map = intersperse_map;
+exports.build_num = build_num;
+

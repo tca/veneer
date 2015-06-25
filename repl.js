@@ -5,6 +5,7 @@ var VeneerVM = require('./eval');
 var read_program = require('./reader');
 var fs = require('fs');
 var runtime = require('./base');
+var kanren = require('./mk');
 // var VeneerVM = require('./veneer');
 
 function inputs (input) {
@@ -77,13 +78,15 @@ function parsing_stream ( ) {
     if (data) {
       var result = read_program(cache.join("\n") + data);
       if (result && result.msg == 'unexpected eof') {
-        cache.push(data)
+        cache.push(data);
       } else {
         // sexps.push(result);
-        if (result.msg) {
-          throw result;
+        if (result) {
+          if (result.msg) {
+            throw result;
+          }
+          this.queue(result);
         }
-        this.queue(result);
         cache = [ ];
         // sexps = cons(result, sexps);
       }
@@ -99,6 +102,40 @@ function parsing_stream ( ) {
   return stream;
 }
 
+function eval_stream (vm) {
+  function iter (data, next) {
+    var value = vm.eval(data);
+    next(null, value);
+  }
+  return es.map(iter);
+}
+
+function run_stream (n) {
+  var max = n ? n : 5;
+  function iter (data, next) {
+    var c = 0;
+    function writer (val) {
+      if (max > c) {
+        var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
+        if (out) {
+          console.log("OUT ELEMENTS", max, c, out);
+          this.queue(out);
+        }
+      } else {
+        this.end( );
+      }
+      c++;
+    }
+    function ender ( ) {
+      next(null, data);
+    }
+    // var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
+    var stream = es.through(writer, ender);
+    stream.write(data);
+  }
+  return es.map(iter);
+}
+
 function pp (prefix) {
   function iter (data, next) {
     console.log(prefix, runtime.pretty_print(data));
@@ -108,16 +145,22 @@ function pp (prefix) {
 }
 
 if (!module.parent) {
-  var vm = new VeneerVM(read_program, runtime);
+  var vm = new VeneerVM(read_program, runtime, kanren);
   console.log(vm);
   es.pipeline(
     inputs.apply(this, process.argv.slice(2))
-  // one line at a time will cause unexpected eof or other errors for valid
-  // expressions that continue on the next line.
   , parsing_stream( )
-  // , lines( )
-  // , get_ast(vm)
   , pp('xxx?')
+  , eval_stream(vm)
+  // , run_stream( )
   // , tap('xxx?')
+  , es.through(function (val) {
+    for (var x=0; x < 5; x++) {
+      var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
+      console.log(out);
+      this.queue(out);
+    }
+  })
+  , tap('ANSWERS?')
   );
 }
