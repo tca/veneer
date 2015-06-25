@@ -69,6 +69,36 @@ function tap (prefix) {
   return es.map(iter);
 }
 
+function parsing_stream ( ) {
+  var cache = [ ];
+  // var sexps = null;
+
+  function writer (data) {
+    if (data) {
+      var result = read_program(cache.join("\n") + data);
+      if (result && result.msg == 'unexpected eof') {
+        cache.push(data)
+      } else {
+        // sexps.push(result);
+        if (result.msg) {
+          throw result;
+        }
+        this.queue(result);
+        cache = [ ];
+        // sexps = cons(result, sexps);
+      }
+    }
+  }
+
+  function ender (data) {
+    // return reverse_aux(sexps, null);
+    this.end( );
+  }
+
+  var stream = es.through(writer, ender);
+  return stream;
+}
+
 function pp (prefix) {
   function iter (data, next) {
     console.log(prefix, runtime.pretty_print(data));
@@ -84,8 +114,9 @@ if (!module.parent) {
     inputs.apply(this, process.argv.slice(2))
   // one line at a time will cause unexpected eof or other errors for valid
   // expressions that continue on the next line.
-  , lines( )
-  , get_ast(vm)
+  , parsing_stream( )
+  // , lines( )
+  // , get_ast(vm)
   , pp('xxx?')
   // , tap('xxx?')
   );
