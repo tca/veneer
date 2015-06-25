@@ -165,6 +165,7 @@ if (!module.parent) {
   }).on('error', function (ev) { console.log('EEEK', arguments); })
   // , tap('ANSWERS?\n')
   // , es.stringify( )
+  , es.join("\n")
   , process.stdout
   );
 }
