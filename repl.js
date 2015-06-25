@@ -104,8 +104,12 @@ function parsing_stream ( ) {
 
 function eval_stream (vm) {
   function iter (data, next) {
-    var value = vm.eval(data);
-    next(null, value);
+    try {
+      var value = vm.eval(data);
+      next(null, value);
+    } catch (e) {
+      next(e, null);
+    }
   }
   return es.map(iter);
 }
@@ -158,7 +162,9 @@ if (!module.parent) {
       var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
       this.queue(out);
     }
-  })
-  , tap('ANSWERS?\n')
+  }).on('error', function (ev) { console.log('EEEK', arguments); })
+  // , tap('ANSWERS?\n')
+  // , es.stringify( )
+  , process.stdout
   );
 }

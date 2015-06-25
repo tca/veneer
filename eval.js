@@ -412,8 +412,7 @@ function VeneerVM(reader, runtime, kanren) {
             var closure = function(aenv, cenv) { return cons(closure_body, closure_env_build(aenv, cenv)); };
             return closure;
         case "zzz":
-              var e1 = eval0(exp.val.cdr.car, env);
-            return (function _zzz (e1) {
+            // return (function _zzz (e1) { })(e1);
               // console.log('HUH?', e1);
               return function _w_1 (aenv, cenv) {
                 // console.log('HUH 2?', e1);
@@ -421,11 +420,13 @@ function VeneerVM(reader, runtime, kanren) {
                   // console.log('HUH 3?', e1);
                   return function _w_3 () {
                     // console.log('HUH 4?', e1);
-                    return e1(aenv, cenv)(mks);
+                    var e1 = eval0(exp.val.cdr.car, env);
+                    var $v = e1(aenv, cenv);
+                    // console.log('$v?', $v);
+                    return $v(mks);
                   };
                 };
               };
-            })(e1);
         case "fresh":
             var len = exp.val.cdr.car.val;
             var fn = exp.val.cdr.cdr.car;
