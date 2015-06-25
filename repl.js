@@ -146,21 +146,19 @@ function pp (prefix) {
 
 if (!module.parent) {
   var vm = new VeneerVM(read_program, runtime, kanren);
-  console.log(vm);
   es.pipeline(
     inputs.apply(this, process.argv.slice(2))
   , parsing_stream( )
-  , pp('xxx?')
+  // , pp('xxx?')
   , eval_stream(vm)
   // , run_stream( )
   // , tap('xxx?')
   , es.through(function (val) {
     for (var x=0; x < 5; x++) {
       var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
-      console.log(out);
       this.queue(out);
     }
   })
-  , tap('ANSWERS?')
+  , tap('ANSWERS?\n')
   );
 }
