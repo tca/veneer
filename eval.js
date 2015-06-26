@@ -100,9 +100,9 @@ function VeneerVM(reader, runtime, kanren) {
     }
 
     function quote_desugar(exp) {
-        console.log("ZZZZ", pretty_print(exp) );
+        // console.log("ZZZZ", pretty_print(exp) );
         if (pairp(exp)) {
-            console.log("YYYY", exp.cdr);
+            // console.log("YYYY", exp.cdr);
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
         } else if (exp == null) {
             return meta(list(intern("quote"), null), { tag: "quoted" });
@@ -183,7 +183,7 @@ function VeneerVM(reader, runtime, kanren) {
             case intern("quote"):
                 var val = quote_desugar(exp.cdr.car);
                 val.meta.constp = true;
-                console.log('xxx', JSON.stringify(val, null, ''));
+                // console.log('xxx', JSON.stringify(val, null, ''));
                 return val;
             case intern("quasiquote"):
                 return desugar(quasiquote_desugar(exp.cdr.car, 1, env), env);
@@ -299,7 +299,6 @@ function VeneerVM(reader, runtime, kanren) {
             return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
                         exp.meta);
         case "lambda":
-            console.log('frees');
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr;
             var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
@@ -389,6 +388,7 @@ function VeneerVM(reader, runtime, kanren) {
             toplevel[exp.val.cdr.car.string].set(result());
             return function(aenv, cenv) { return true; };
         case "quoted":
+            // console.log('eval quoted', exp, runtime.pretty_print(exp.val.cdr.car));
             var val = exp.val.cdr.car;
             return function(aenv, cenv) { return val };
         case "begin":
@@ -407,7 +407,6 @@ function VeneerVM(reader, runtime, kanren) {
         case "lambda":
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr.car;
-            console.log("DEBUG LAMBDA", body);
             var free_env = foldl(reverse(exp.meta.frees), cons(null, null), augment_cenv);
             var env1_rest = foldl(exp.meta.params.rest, free_env, augment_aenv_rest);
             var env1 = foldl(reverse(exp.meta.params.normal), env1_rest, augment_aenv);
