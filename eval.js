@@ -100,7 +100,9 @@ function VeneerVM(reader, runtime, kanren) {
     }
 
     function quote_desugar(exp) {
+        console.log("ZZZZ", pretty_print(exp) );
         if (pairp(exp)) {
+            console.log("YYYY", exp.cdr);
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
         } else if (exp == null) {
             return meta(list(intern("quote"), null), { tag: "quoted" });
@@ -234,6 +236,7 @@ function VeneerVM(reader, runtime, kanren) {
                 var norm = normalize_params(bindings);
                 var env1 = foldl(norm.whole, env, function(e, b) { return cons(cons(b, b), e); });
                 var body1 = desugar(cons(intern("begin"), body), env1);
+                // console.log("DEBUG LAMBDA", body1, env1, env);
                 return meta(list(exp.car, norm.whole, body1),
                             { tag: "lambda", params: norm });
             default:
@@ -295,6 +298,7 @@ function VeneerVM(reader, runtime, kanren) {
             return meta(cons(exp.val.car, map(function(x) { return frees(x, env, lenv, fenv); }, exp.val.cdr)),
                         exp.meta);
         case "lambda":
+            console.log('frees');
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr;
             var e1 = foldl(bindings, env, function(e, a) { return cons(cons(a, a), e); });
@@ -387,6 +391,7 @@ function VeneerVM(reader, runtime, kanren) {
             var val = exp.val.cdr.car;
             return function(aenv, cenv) { return val };
         case "begin":
+            console.log("WHAT NOW BEGIN");
             if (exp.val.cdr == null) { throw new Error("empty begin"); }
             else if (exp.val.cdr.cdr == null) {
                 var e1 = eval0(exp.val.cdr.car, env);
@@ -402,6 +407,7 @@ function VeneerVM(reader, runtime, kanren) {
         case "lambda":
             var bindings = exp.val.cdr.car;
             var body = exp.val.cdr.cdr.car;
+            console.log("DEBUG LAMBDA", body);
             var free_env = foldl(reverse(exp.meta.frees), cons(null, null), augment_cenv);
             var env1_rest = foldl(exp.meta.params.rest, free_env, augment_aenv_rest);
             var env1 = foldl(reverse(exp.meta.params.normal), env1_rest, augment_aenv);
@@ -412,21 +418,25 @@ function VeneerVM(reader, runtime, kanren) {
             var closure = function(aenv, cenv) { return cons(closure_body, closure_env_build(aenv, cenv)); };
             return closure;
         case "zzz":
-            // return (function _zzz (e1) { })(e1);
-              // console.log('HUH?', e1);
-              return function _w_1 (aenv, cenv) {
-                // console.log('HUH 2?', e1);
-                return function _w_2 (mks) {
-                  // console.log('HUH 3?', e1);
-                  return function _w_3 () {
+            return (function _zzz ( ) {
+              var e1 = eval0(exp.val.cdr.car, env);
+              // console.log('HUH 1?', e1, env);
+              return function _zzz_1 (aenv, cenv) {
+                // console.log('HUH 2?', aenv.map(runtime.pretty_print), cenv.map(runtime.pretty_print));
+                return function _zzz_mks_2 (mks) {
+                  // console.log('HUH 3?', mks);
+                  return function _zzz_3 () {
                     // console.log('HUH 4?', e1);
-                    var e1 = eval0(exp.val.cdr.car, env);
                     var $v = e1(aenv, cenv);
-                    // console.log('$v?', $v);
+                    // console.log(e1, '$v?', $v);
+                    if (typeof $v == 'undefined') {
+                      throw "wowowow";
+                    }
                     return $v(mks);
                   };
                 };
               };
+            })( );
         case "fresh":
             var len = exp.val.cdr.car.val;
             var fn = exp.val.cdr.cdr.car;
@@ -484,12 +494,21 @@ function VeneerVM(reader, runtime, kanren) {
         var evalers = [];
         var callers = [];
 
-        var func = kanren[name] || runtime[name];
 
         function do_code (args, env, eval0) {
+          var func = kanren[name] || runtime[name];
+          if (name == 'console.log') {
+            func = function logger ( ) {
+              console.log.apply(console, [].slice.apply(arguments).map(function ith (m) {
+                return JSON.stringify(m, null, '  ');
+              }));
+            }
+          }
           var $ans = [ ];
           for (c=0; c < arity; c++) {
             (function _iter_eval_arity (v, i) {
+              // console.log(arity, 'args', runtime.pretty_print(args));
+              // console.log(arity, 'args', args);
               var e0 = eval0(args.car, env);
               args = args.cdr;
               $ans.push(e0);
@@ -497,13 +516,24 @@ function VeneerVM(reader, runtime, kanren) {
           }
 
           function answer (aenv, cenv) {
-            var intermediate = $ans.map(function _iter_answers (e0, i) {
-              return e0(aenv, cenv);
+            var intermediate = [ ];
+            $ans.map(function _iter_answers (e0, i) {
+              var r = e0(aenv, cenv);
+              // console.log('INTERMEDIATE', e0, i, r);
+              intermediate.push(r);
             });
             if (infixp) {
                 return infixen.apply(this, [name].concat(intermediate));
             } else {
-              return func.apply(this, intermediate);
+              // console.log('intermediate', intermediate);
+              var result = func.apply(this, intermediate);
+              // console.log('answer', result);
+              if (result && typeof result.cdr === 'undefined') {
+                // console.error(name, runtime.pretty_print(result));
+                // console.error("ARGS", JSON.stringify(args));
+                // throw "bad cdr";
+              }
+              return result;
             }
           }
           return answer;
@@ -541,9 +571,9 @@ function VeneerVM(reader, runtime, kanren) {
 
         var args_evald = evalers.join("");
         var return_val = ["return function(aenv, cenv) { ", callers.join("; "), " };"].join("");
-        console.log('NEW FUNCTION', name, arity, 'begin_code');
-        console.log([args_evald, return_val].join(""));
-        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
+        console.log('NEW FUNCTION', arity, 'begin_code');
+        console.log('function', '(', args_evald, ')', "\n" + return_val);
+        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n")).bind(this);
     }
 
     function veval(exp, env) {

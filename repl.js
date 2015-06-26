@@ -1,5 +1,4 @@
 
-var Immutable = require("./immutable.min.js");
 var es = require('event-stream');
 var VeneerVM = require('./eval');
 var read_program = require('./reader');
@@ -13,6 +12,8 @@ function inputs (input) {
   var out = es.through(function (d) { this.queue(d); });
   if (!input) {
     L.push(process.stdin);
+    console.log(';; veneer');
+    process.stdout.write('veneer>');
   } else {
     var args = [].slice.apply(arguments);
     if (args && args.length > 0) {
@@ -150,19 +151,26 @@ function pp (prefix) {
 
 if (!module.parent) {
   var vm = new VeneerVM(read_program, runtime, kanren);
+  var filenames = process.argv.slice(2);
   es.pipeline(
-    inputs.apply(this, process.argv.slice(2))
+    inputs.apply(this, filenames)
   , parsing_stream( )
   // , pp('xxx?')
-  , eval_stream(vm)
+  , eval_stream(vm).on('error', function (ev) { console.log('EEEK', 'eval_stream', arguments); })
   // , run_stream( )
   // , tap('xxx?')
   , es.through(function (val) {
     for (var x=0; x < 5; x++) {
       var out = runtime.procedurep(val) ? val() : runtime.pretty_print(val);
-      this.queue(out);
+      // console.log(val, out);
+      if (out !== null) {
+        this.queue(out);
+      }
     }
-  }).on('error', function (ev) { console.log('EEEK', arguments); })
+    if (filenames.length == 0) {
+      this.queue('>');
+    }
+  }).on('error', function (ev) { console.log('EEEK', 'through', arguments); })
   // , tap('ANSWERS?\n')
   // , es.stringify( )
   , es.join("\n")

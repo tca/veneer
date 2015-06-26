@@ -59,7 +59,7 @@ try {
   var val = vm.read_eval(myString);
   for (var x = 0 ; x < 5 ; x++) {
   var out = procedurep(val) ? val() : pretty_print(val);
-  console.log(out);
+    console.log(out);
   }
 } catch (e) {
   console.error(e, val, myString);
