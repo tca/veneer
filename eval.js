@@ -183,6 +183,7 @@ function VeneerVM(reader, runtime, kanren) {
             case intern("quote"):
                 var val = quote_desugar(exp.cdr.car);
                 val.meta.constp = true;
+                console.log('xxx', JSON.stringify(val, null, ''));
                 return val;
             case intern("quasiquote"):
                 return desugar(quasiquote_desugar(exp.cdr.car, 1, env), env);
@@ -391,7 +392,6 @@ function VeneerVM(reader, runtime, kanren) {
             var val = exp.val.cdr.car;
             return function(aenv, cenv) { return val };
         case "begin":
-            console.log("WHAT NOW BEGIN");
             if (exp.val.cdr == null) { throw new Error("empty begin"); }
             else if (exp.val.cdr.cdr == null) {
                 var e1 = eval0(exp.val.cdr.car, env);
