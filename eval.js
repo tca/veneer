@@ -635,12 +635,19 @@ function VeneerVM(reader, runtime, kanren) {
 
     function run_expression(p) {
         var desugared = desugar(p, null);
+        console.log("DESUGARED", desugar);
         var lifted = lift_frees(desugared);
+        console.log("LIFTED", lifted);
 
         var exp = lifted.car;
+        console.log("LIFTED exp", exp);
         var env = cons(null, lifted.cdr.car);
+        console.log("ENV", env);
         var mks = lifted.cdr.cdr.car;
+        console.log("mks", mks);
+        console.log("evald args", exp, env);
         var evald = veval(exp, env);
+        console.log("evald result", evald);
 
         if(procedurep(evald)) {
             var q$ = query_stream(evald, env.cdr, mks);
