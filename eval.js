@@ -100,7 +100,7 @@ function VeneerVM(reader, runtime, kanren) {
     }
 
     function quote_desugar(exp) {
-        // console.log("ZZZZ", pretty_print(exp) );
+        console.log("ZZZZ", pretty_print(exp) );
         if (pairp(exp)) {
             // console.log("YYYY", exp.cdr);
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
@@ -183,7 +183,7 @@ function VeneerVM(reader, runtime, kanren) {
             case intern("quote"):
                 var val = quote_desugar(exp.cdr.car);
                 val.meta.constp = true;
-                // console.log('xxx', JSON.stringify(val, null, ''));
+                console.log('xxx', JSON.stringify(val, null, '  '));
                 return val;
             case intern("quasiquote"):
                 return desugar(quasiquote_desugar(exp.cdr.car, 1, env), env);
@@ -287,7 +287,7 @@ function VeneerVM(reader, runtime, kanren) {
             var dfenv = ref(null);
             // add self to env once mutable vars works, unless toplevel
             var ret = list(exp.val.car, name, frees(exp.val.cdr.cdr.car, env, lenv, dfenv));
-            if(dfenv.get() === null) {
+            if(dfenvget() === null) {
                 return meta(ret, exp.meta);
             } else {
                 throw ("free variables in define: " + name.string + pretty_print(map(car, dfenv.get())));
