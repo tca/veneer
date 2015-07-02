@@ -495,28 +495,87 @@
 </textarea>
 </div>
 <div class="demo">
-<span class="title">lists</span>
+<span class="title">reasoned schemer prelude</span>
 <textarea class="content">
-;; basic list relations
+(define caro
+  (lambda (p a)
+    (fresh (d)
+      (== (cons a d) p))))
 
-(define (membero x l)
- (fresh (head tail)
-  (== l `(,head . ,tail))
-  (conde
-   ((== x head))
-   ((membero x tail)))))
+(define cdro
+  (lambda (p d)
+    (fresh (a)
+      (== (cons a d) p))))
 
-(membero x '(1 2 3))
+(define conso
+  (lambda (a d p)
+    (== (cons a d) p)))
 
-(define (appendo x y z)
- (conde
-  ((== x '()) (== y z))
-  ((fresh (head xtail ytail ztail)
-    (== x `(,head . ,xtail))
-    (== z `(,head . ,ztail))
-    (appendo xtail y ztail)))))
+(define nullo
+  (lambda (x)
+    (== '() x)))
 
-(appendo left right '(1 2 3 4))
+(define eqo
+  (lambda (x y)
+    (== x y)))
+
+(define eq-caro
+  (lambda (l x)
+    (caro l x)))
+
+(define pairo
+  (lambda (p)
+    (fresh (a d)
+      (conso a d p))))
+
+(define listo
+  (lambda (l)
+    (conde
+      ((nullo l))
+      ((pairo l)
+       (fresh (d)
+         (cdro l d)
+         (listo d))))))
+
+(define membero
+  (lambda (x l)
+    (conde
+      ((eq-caro l x))
+      ((fresh (d)
+         (cdro l d)
+         (membero x d))))))
+
+(define rembero  
+  (lambda (x l out)
+    (conde
+      ((nullo l) (== '() out))
+      ((eq-caro l x) (cdro l out))
+      ((fresh (a d res)
+         (conso a d l)
+         (rembero x d res)
+         (conso a res out))))))
+
+(define appendo
+  (lambda (l s out)
+    (conde
+      ((nullo l) (== s out))
+      ((fresh (a d res)
+         (conso a d l)
+         (conso a res out)
+         (appendo d s res))))))
+
+(define anyo
+  (lambda (g)
+    (conde
+      (g)
+      ((anyo g)))))
+
+(define (fail) (== 'war 'peace))
+(define (succeed) (== 'a 'a))
+
+(define nevero (anyo fail))
+ 
+(define alwayso (anyo succeed))
 </textarea>
 </div>
 <div class="demo">
