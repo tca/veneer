@@ -28,6 +28,16 @@ function load_editor() {
     };
 
 
+    var slider = document.getElementById("slider");
+    slider.onchange = function() {
+        font_size = (parseInt(slider.value) + 16) * 0.5;
+        editor_elt.style.fontSize = "" + font_size + "pt";
+        repl.style.fontSize = "" + font_size + "pt";
+        editor.refresh();
+    };
+
+
+
     var demo = false;
     var loaded_file = false;
     function setEditorValue(val) {
