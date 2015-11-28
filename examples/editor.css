@@ -1,0 +1,11 @@
+body {
+    padding:0;
+    margin: 0;
+    font-family:courier, monospace;
+    height:100vh;
+    background-color:#ccc
+}
+
+#container { height:100%; width:100%; }
+#head { position:absolute; top:0; width:100%; }
+#demos { display:none; }

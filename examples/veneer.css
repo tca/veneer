@@ -1,0 +1,80 @@
+.CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
+.CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
+
+.editor_container {
+    position:absolute;
+    top:3em;
+    bottom:0;
+    width:100%;
+}
+
+.CodeMirror {
+    width:100%;
+    height:100%;
+}
+
+.repl_container {
+    display:none;
+    position:absolute;
+    top:3em;
+    bottom:0;
+    width:100%;
+    overflow-y:scroll;
+
+}
+
+.repl {
+    width:100%;
+    font-family: monospace, courier;
+    font-size:10pt;
+    background-color:#f9f9f9;
+}
+
+.buttons_container {
+    position:absolute;
+    width:100%;
+    height:1.5em;
+    top:1.5em;
+}
+
+.buttons_container div .helptext { font-size:10pt; }
+.buttons_container div:hover { color:#000; background-color:#ccc; }
+.buttons_container div {
+    font-size:1.25em;
+    display:inline;
+    background-color: #eee;
+    cursor:pointer;
+    border-right:3px solid #ccc;
+    padding:0 .4em;
+}
+.clear { clear:both; margin:0; padding:0; border-width:0; displat:none; }
+
+.errors {
+    position:absolute;
+    top:.5em; left:.5em;
+    z-index:100;
+    width:46%; 
+    margin:0; 
+    padding: 0 2%;
+    background-color:transparent;
+    border-width:0; 
+}
+
+.error { background-color:#f00; color:#000;}
+
+.inputbox:last-child { margin-bottom:0em; }
+
+.inputbox {
+    background-color:#fff;
+    white-space: pre-wrap;
+    border:1px solid #ccc;
+    min-height:1em; 
+    padding:2px 8px; 
+}
+
+.result { 
+    white-space: pre-wrap;
+    background-color: #eee;
+    margin:0;
+    padding: 2px 8px; 
+}
