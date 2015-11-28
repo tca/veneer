@@ -50,6 +50,36 @@ function load_editor() {
     document.getElementById("save_file").onclick = save_current;
     document.getElementById("new_file").onclick = add_file;
 
+    document.getElementById("create_link").onclick = function() {
+        var req = new XMLHttpRequest();
+        var method = "POST";
+        var url = "https://api.github.com/gists";
+
+        var options = {
+            "description": "veneer save",
+            "public": true,
+            "files": {
+                "file": {
+                    "content": editor.getValue()
+                }
+            }
+        };
+
+        req.open(method, url, true);
+        req.onreadystatechange = function () {
+            if (req.readyState !== XMLHttpRequest.DONE) {
+                return;
+            }
+            alert(req.status);
+            if (req.status === 201) {
+                var response = JSON.parse(req.responseText);
+                window.location.hash = response.id;
+            }
+        };
+        req.send(JSON.stringify(options));
+    };
+
+
     function confirm_overwrite(name) {
         return window.confirm("File exists: Are you sure you want to over-write  \"" + name + "\"");
     }
@@ -121,5 +151,23 @@ function load_editor() {
 
     function add_file() {
         if(save_current(true)) { setEditorValue(''); }
+    }
+
+    if(window.location.hash) {
+        var req = new XMLHttpRequest();
+        var method = "GET";
+        var url = "https://api.github.com/gists/" + window.location.hash.substring(1);
+
+        req.open(method, url, true);
+        req.onreadystatechange = function () {
+            if (req.readyState !== XMLHttpRequest.DONE) {
+                return;
+            }
+            if (req.status === 200) {
+                var response = JSON.parse(req.responseText);
+                setEditorValue(response.files.file.content);
+            }
+        };
+        req.send();
     }
 }
