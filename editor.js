@@ -70,7 +70,6 @@ function load_editor() {
             if (req.readyState !== XMLHttpRequest.DONE) {
                 return;
             }
-            alert(req.status);
             if (req.status === 201) {
                 var response = JSON.parse(req.responseText);
                 window.location.hash = response.id;
