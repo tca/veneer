@@ -1,6 +1,13 @@
 .CodeMirror-matchingbracket {  border:1px solid #ccc; margin:-1px;  }
 .CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
 
+.buttons_container {
+    position:absolute;
+    width:100%;
+    height:1.5em;
+    top:1.5em;
+}
+
 .editor_container {
     position:absolute;
     top:3em;
@@ -20,7 +27,6 @@
     bottom:0;
     width:100%;
     overflow-y:scroll;
-
 }
 
 .repl {
@@ -28,13 +34,6 @@
     font-family: monospace, courier;
     font-size:10pt;
     background-color:#f9f9f9;
-}
-
-.buttons_container {
-    position:absolute;
-    width:100%;
-    height:1.5em;
-    top:1.5em;
 }
 
 .buttons_container div .helptext { font-size:10pt; }
@@ -67,7 +66,7 @@
 .inputbox {
     background-color:#fff;
     white-space: pre-wrap;
-    border:1px solid #ccc;
+    /* border:1px solid #ccc; */
     min-height:1em; 
     padding:2px 8px; 
 }

@@ -1,5 +1,7 @@
 function Veneer_v1() {
     this.new_editor = function(container, vm, seed) {
+        container.className += " veneer_container";
+
         var errors = document.createElement("div");
         errors.className += "errors";
         container.appendChild(errors);
@@ -23,6 +25,7 @@ function Veneer_v1() {
         var repl_container = document.createElement("div");
         repl_container.className += "repl_container";
         container.appendChild(repl_container);
+
         var repl = document.createElement("div");
         repl.className += "repl";
         repl_container.appendChild(repl);
@@ -30,9 +33,11 @@ function Veneer_v1() {
         var buttons_container = document.createElement("div");
         buttons_container.className += "buttons_container";
         container.appendChild(buttons_container);
+
         var dump_button = document.createElement("div");
         dump_button.className += "dump_button";
-        dump_button.appendChild(document.createTextNode("run"));
+        dump_button.appendChild(document.createTextNode("run!"));
+        dump_button.style.padding = "0 2em";
         buttons_container.appendChild(dump_button);
 
         var edit_button = document.createElement("div");
@@ -44,6 +49,55 @@ function Veneer_v1() {
         repl_button.className += "repl_button";
         repl_button.appendChild(document.createTextNode("repl"));
         buttons_container.appendChild(repl_button);
+
+        var edit_mode = "edit";
+
+        var vertical_button = document.createElement("div");
+        vertical_button.className += "vertical_button";
+        vertical_button.appendChild(document.createTextNode("vertical"));
+        buttons_container.appendChild(vertical_button);
+        vertical_button.style.float = "right";
+        vertical_button.onclick = function() {
+            editor_container.style.display="block";
+            editor_container.style.width="50%"
+            editor_container.style.top="3em";
+            editor_container.style.height="auto";
+            editor_container.style.bottom="0";
+
+            repl_container.style.display="block";
+            repl_container.style.width="50%"
+            repl_container.style.top="3em";
+            repl_container.style.right="0";
+            repl_container.style.height="auto";
+            repl_container.style.bottom="0";
+
+            edit_mode = "vertical";
+            repl_button.style.display = "none";
+            edit_button.style.display = "none";
+        }
+
+        var present_button = document.createElement("div");
+        present_button.className += "present_button";
+        present_button.appendChild(document.createTextNode("present"));
+        buttons_container.appendChild(present_button);
+        present_button.style.float = "right";
+        present_button.onclick = function() {
+            editor_container.style.display="block";
+            editor_container.style.height="auto";
+            editor_container.style.width="100%";
+            editor_container.style.bottom="0";
+
+            repl_container.style.display="none";
+            repl_container.style.width="100%";
+            repl_container.style.height="auto";
+            repl_container.style.top="3em";
+            repl_container.style.bottom="0";
+
+
+            edit_mode = "edit";
+            repl_button.style.display = "inline";
+            edit_button.style.display = "inline";
+        }
 
         // var clear = document.createElement("hr");
         // clear.className += "clear";
@@ -154,13 +208,12 @@ function Veneer_v1() {
             return inputbox;
         }
         
-        var edit_mode = "edit";
         var dump_editor = function(event) {
             if (edit_mode === "edit") {
                 edit_mode = "repl";
                 editor_container.style.display="none";
                 repl_container.style.display="block";
-            } else {}
+            }
 
             vm.reset();
             if (!(typeof seed === 'undefined')) { vm.read_eval(seed); }
@@ -185,7 +238,7 @@ function Veneer_v1() {
                 edit_mode = "repl";
                 repl_container.style.display="block";
                 editor_container.style.display="none";
-            } else {}
+            }
         };
 
         var shift = false;
@@ -193,7 +246,8 @@ function Veneer_v1() {
         editor.setOption("extraKeys", {
             "Shift-Enter": function(cm) { dump_editor();}
         });
-
+        
+        vertical_button.onclick();
         return { editor: editor, editor_elt: editor_elt, repl: repl, errors: errors, dump_button: dump_button };
     };
 
