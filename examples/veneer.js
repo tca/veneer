@@ -238,6 +238,8 @@ function Veneer_v1() {
                 edit_mode = "repl";
                 repl_container.style.display="block";
                 editor_container.style.display="none";
+            } else if (edit_mode === "repl") {
+                current_input.scrollIntoView(false);
             }
         };
 

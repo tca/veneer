@@ -2,6 +2,7 @@
 .CodeMirror-nonmatchingbracket { border:1px solid #f00; margin:-1px; }
 
 .buttons_container {
+    background-color:#ccc;
     position:absolute;
     width:100%;
     height:1.5em;
@@ -61,12 +62,12 @@
 
 .error { background-color:#f00; color:#000;}
 
-.inputbox:last-child { margin-bottom:0em; }
+.inputbox:last-child { padding:8px 8px; margin-bottom:8px}
 
 .inputbox {
     background-color:#fff;
     white-space: pre-wrap;
-    /* border:1px solid #ccc; */
+    border:1px solid #ccc;
     min-height:1em; 
     padding:2px 8px; 
 }

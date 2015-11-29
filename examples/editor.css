@@ -4,7 +4,7 @@ body {
     margin: 0;
     font-family:courier, monospace;
     height:100%;
-    background-color:#ccc
+    background-color:#eee;
 }
 
 #container {
@@ -12,5 +12,5 @@ body {
     top:0; bottom:0;
     height:100%; width:100%;
 }
-#head { position:absolute; top:0; width:100%; }
+#head { position:absolute; top:0; width:100%; background-color:#ccc;}
 #demos { display:none; }
