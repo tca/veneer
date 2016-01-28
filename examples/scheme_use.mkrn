@@ -1,0 +1,16 @@
+
+;; running append in reverse
+(eval-expo `((((lambda (f)
+                 ((lambda (x)
+                    (f (x x)))
+                  (lambda (x)
+                    (lambda (y) ((f (x x)) y)))))
+               (lambda (my-append)
+                 (lambda (l)
+                   (lambda (s)
+                     (if (null? l)
+                         s
+                         (cons (car l) ((my-append (cdr l)) s)))))))
+              (quote ,x))
+             (quote ,y)) '() '(a b c d e))
+

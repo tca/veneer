@@ -1,3 +1,38 @@
+var runtime = require('./base');
+
+var Pair = runtime.Pair;
+var car = runtime.car;
+var cdr = runtime.cdr;
+var pairp = runtime.pairp;
+var cons = runtime.cons;
+var Symbol = runtime.Symbol;
+var gensym = runtime.gensym;
+var intern = runtime.intern;
+var nullp = runtime.nullp;
+var procedurep = runtime.procedurep;
+var symbolp = runtime.symbolp;
+var numberp = runtime.numberp;
+var booleanp = runtime.booleanp;
+var stringp = runtime.stringp;
+var constantp = runtime.constantp;
+var Ref = runtime.Ref;
+var ref = runtime.ref;
+var anyp = runtime.anyp;
+var memq = runtime.memq;
+var assp = runtime.assp;
+var length = runtime.length;
+var nth = runtime.nth;
+var reverse_aux = runtime.reverse_aux;
+var reverse = runtime.reverse;
+var array_slice_list = runtime.array_slice_list;
+var array_to_list = runtime.array_to_list;
+var map = runtime.map;
+var list = runtime.list;
+var foldl = runtime.foldl;
+var foldr = runtime.foldr;
+var assq = runtime.assq;
+var pretty_print = runtime.pretty_print;
+
 var eof = ["eof"];
 function eofp(c) { return eof === c; }
 
@@ -20,6 +55,7 @@ function Stream(string) {
         this.pos--;
     }
 }
+
 
 function whitespacep(c) { return /\s+/.test(c); }
 function symbolicp(c) { return /[a-zA-Z0-9=\/\\!@#$%^&*_+=\-?.~<>\:]/.test(c); }
@@ -204,3 +240,9 @@ function read_program(str) {
     try { return read_top(null, new Stream(str)); }
     catch(err) { throw new ReaderError(err); }
 }
+exports = module.exports = read_program;
+exports.Stream = Stream;
+exports.ReaderError = ReaderError;
+exports.read = read;
+exports.reader_for = reader_for;
+exports.readtable = readtable;

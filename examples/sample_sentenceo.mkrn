@@ -1,0 +1,45 @@
+
+;; constructing sentences using relations
+
+(define (conso car cdr c) (== `(,car . ,cdr) c))
+
+(define (membero x l)
+ (fresh (head tail)
+  (== l `(,head . ,tail))
+  (conde
+   ((== x head))
+   ((membero x tail)))))
+
+(define (nouno n) (membero n '(cat bat)))
+(define (verbo v) (membero v '(eats)))
+(define (deto d)  (membero d '(the a)))
+
+;; fixed sentence structure
+(define (my-sentenceo s)
+  (fresh (v n1 d1 n2 d2)
+    (verbo v)
+    (nouno n1)
+    (nouno n2)
+    (deto d1)
+    (deto d2)
+    (== s `(,d1 ,n1 ,v ,d2 ,n2))))
+
+(my-sentenceo x)
+
+;; with parameterized structure
+(define (wordo class word)
+ (conde
+  ((== class 'noun) (nouno word))
+  ((== class 'verb) (verbo word))
+  ((== class 'det)  (deto word))))
+
+(define (sentenceo grammar s)
+ (conde ((== grammar '()) (== s '()))
+        ((fresh (g-head s-head
+                 g-tail s-tail)
+           (conso g-head g-tail grammar)
+           (conso s-head s-tail s)
+           (wordo g-head s-head)
+           (sentenceo g-tail s-tail)))))
+
+(sentenceo '(det noun verb det noun) s)

@@ -34,8 +34,8 @@ function constantp(t) { return numberp(t) || booleanp(t) || stringp(t); }
 function Ref(v) {
     this.val = v;
 }
-Ref.prototype.get = function() { return this.val; };
-Ref.prototype.set = function(v1) { this.val = v1; };
+Ref.prototype.get = function _ref_get () { return this.val; };
+Ref.prototype.set = function _ref_set (v1) { this.val = v1; };
 
 function ref(v) { return new Ref(v); }
 
@@ -157,3 +157,36 @@ function pretty_print(x) {
         return JSON.stringify(x);
     }
 }
+
+exports.Pair = Pair;
+exports.car = car;
+exports.cdr = cdr;
+exports.pairp = pairp;
+exports.cons = cons;
+exports.Symbol = Symbol;
+exports.gensym = gensym;
+exports.intern = intern;
+exports.nullp = nullp;
+exports.procedurep = procedurep;
+exports.symbolp = symbolp;
+exports.numberp = numberp;
+exports.booleanp = booleanp;
+exports.stringp = stringp;
+exports.constantp = constantp;
+exports.Ref = Ref;
+exports.ref = ref;
+exports.anyp = anyp;
+exports.memq = memq;
+exports.assp = assp;
+exports.length = length;
+exports.nth = nth;
+exports.reverse_aux = reverse_aux;
+exports.reverse = reverse;
+exports.array_slice_list = array_slice_list;
+exports.array_to_list = array_to_list;
+exports.map = map;
+exports.list = list;
+exports.foldl = foldl;
+exports.foldr = foldr;
+exports.assq = assq;
+exports.pretty_print = pretty_print;

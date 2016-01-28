@@ -1,5 +1,96 @@
-function VeneerVM() {
+var Immutable = require('immutable');
+function VeneerVM(reader, runtime, kanren) {
+  var read_program = read_program ? read_program : reader;
+
+  var Pair = runtime.Pair;
+  var car = runtime.car;
+  var cdr = runtime.cdr;
+  var pairp = runtime.pairp;
+  var cons = runtime.cons;
+  var Symbol = runtime.Symbol;
+  var gensym = runtime.gensym;
+  var intern = runtime.intern;
+  var nullp = runtime.nullp;
+  var procedurep = runtime.procedurep;
+  var symbolp = runtime.symbolp;
+  var numberp = runtime.numberp;
+  var booleanp = runtime.booleanp;
+  var stringp = runtime.stringp;
+  var constantp = runtime.constantp;
+  var Ref = runtime.Ref;
+  var ref = runtime.ref;
+  var anyp = runtime.anyp;
+  var memq = runtime.memq;
+  var assp = runtime.assp;
+  var length = runtime.length;
+  var nth = runtime.nth;
+  var reverse_aux = runtime.reverse_aux;
+  var reverse = runtime.reverse;
+  var array_slice_list = runtime.array_slice_list;
+  var array_to_list = runtime.array_to_list;
+  var map = runtime.map;
+  var list = runtime.list;
+  var foldl = runtime.foldl;
+  var foldr = runtime.foldr;
+  var assq = runtime.assq;
+  var pretty_print = runtime.pretty_print;
+
+  var Mks = kanren;
+  var Var = kanren.Var;
+  var mkvar = kanren.mkvar;
+  var varp = kanren.varp;
+  var vareq = kanren.vareq;
+  var MiniKanrenState = kanren.MiniKanrenState;
+  var walk = kanren.walk;
+  var occurs_check = kanren.occurs_check;
+  var ext_s_check = kanren.ext_s_check;
+  var eqeq = kanren.eqeq;
+  var noteqeq = kanren.noteqeq;
+  var type_check = kanren.type_check;
+  var symbolo = kanren.symbolo;
+  var numbero = kanren.numbero;
+  var typeo = kanren.typeo;
+  var absento = kanren.absento;
+  var unit = kanren.unit;
+  var unify = kanren.unify;
+  var ext_s_check_prefix = kanren.ext_s_check_prefix;
+  var unify_prefix = kanren.unify_prefix;
+  var disequality = kanren.disequality;
+  var normalize_constraint_store = kanren.normalize_constraint_store;
+  var call_fresh = kanren.call_fresh;
+  var disj = kanren.disj;
+  var conj = kanren.conj;
+  var mplus = kanren.mplus;
+  var bind = kanren.bind;
+  var pull = kanren.pull;
+  var take = kanren.take;
+  var take_all = kanren.take_all;
+  var reify = kanren.reify;
+  var walk_star = kanren.walk_star;
+  var reify_s = kanren.reify_s;
+  var reify_name = kanren.reify_name;
+  var pred_to_tag = kanren.pred_to_tag;
+  var query_map = kanren.query_map;
+  var print_constraints = kanren.print_constraints;
+  var intersperse_map = kanren.intersperse_map;
+  var build_num = kanren.build_num;
+
     var toplevel = new Object(null);
+
+
+    function infixen (name, $e0, $e1) {
+      switch (name) {
+        case '-':
+          return $e0 - $e1;
+        case '+':
+          return $e0 + $e1;
+        case '===':
+          return $e0 === $e1;
+        default:
+          console.error('bad infixen');
+          break;
+      }
+    }
 
     function register_define(exp) {
         if (pairp(exp) && exp.car === intern("define")) {
@@ -9,7 +100,9 @@ function VeneerVM() {
     }
 
     function quote_desugar(exp) {
+        console.log("ZZZZ", pretty_print(exp) );
         if (pairp(exp)) {
+            // console.log("YYYY", exp.cdr);
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
         } else if (exp == null) {
             return meta(list(intern("quote"), null), { tag: "quoted" });
@@ -90,6 +183,7 @@ function VeneerVM() {
             case intern("quote"):
                 var val = quote_desugar(exp.cdr.car);
                 val.meta.constp = true;
+                console.log('xxx', JSON.stringify(val, null, '  '));
                 return val;
             case intern("quasiquote"):
                 return desugar(quasiquote_desugar(exp.cdr.car, 1, env), env);
@@ -143,6 +237,7 @@ function VeneerVM() {
                 var norm = normalize_params(bindings);
                 var env1 = foldl(norm.whole, env, function(e, b) { return cons(cons(b, b), e); });
                 var body1 = desugar(cons(intern("begin"), body), env1);
+                // console.log("DEBUG LAMBDA", body1, env1, env);
                 return meta(list(exp.car, norm.whole, body1),
                             { tag: "lambda", params: norm });
             default:
@@ -192,7 +287,7 @@ function VeneerVM() {
             var dfenv = ref(null);
             // add self to env once mutable vars works, unless toplevel
             var ret = list(exp.val.car, name, frees(exp.val.cdr.cdr.car, env, lenv, dfenv));
-            if(dfenv.get() === null) {
+            if(dfenvget() === null) {
                 return meta(ret, exp.meta);
             } else {
                 throw ("free variables in define: " + name.string + pretty_print(map(car, dfenv.get())));
@@ -293,6 +388,7 @@ function VeneerVM() {
             toplevel[exp.val.cdr.car.string].set(result());
             return function(aenv, cenv) { return true; };
         case "quoted":
+            // console.log('eval quoted', exp, runtime.pretty_print(exp.val.cdr.car));
             var val = exp.val.cdr.car;
             return function(aenv, cenv) { return val };
         case "begin":
@@ -321,8 +417,25 @@ function VeneerVM() {
             var closure = function(aenv, cenv) { return cons(closure_body, closure_env_build(aenv, cenv)); };
             return closure;
         case "zzz":
-            var e1 = eval0(exp.val.cdr.car, env);
-            return function(aenv, cenv) { return function(mks) { return function() { return e1(aenv, cenv)(mks); }; }; };
+            return (function _zzz ( ) {
+              var e1 = eval0(exp.val.cdr.car, env);
+              // console.log('HUH 1?', e1, env);
+              return function _zzz_1 (aenv, cenv) {
+                // console.log('HUH 2?', aenv.map(runtime.pretty_print), cenv.map(runtime.pretty_print));
+                return function _zzz_mks_2 (mks) {
+                  // console.log('HUH 3?', mks);
+                  return function _zzz_3 () {
+                    // console.log('HUH 4?', e1);
+                    var $v = e1(aenv, cenv);
+                    // console.log(e1, '$v?', $v);
+                    if (typeof $v == 'undefined') {
+                      throw "wowowow";
+                    }
+                    return $v(mks);
+                  };
+                };
+              };
+            })( );
         case "fresh":
             var len = exp.val.cdr.car.val;
             var fn = exp.val.cdr.cdr.car;
@@ -380,6 +493,52 @@ function VeneerVM() {
         var evalers = [];
         var callers = [];
 
+
+        function do_code (args, env, eval0) {
+          var func = kanren[name] || runtime[name];
+          if (name == 'console.log') {
+            func = function logger ( ) {
+              console.log.apply(console, [].slice.apply(arguments).map(function ith (m) {
+                return JSON.stringify(m, null, '  ');
+              }));
+            }
+          }
+          var $ans = [ ];
+          for (c=0; c < arity; c++) {
+            (function _iter_eval_arity (v, i) {
+              // console.log(arity, 'args', runtime.pretty_print(args));
+              // console.log(arity, 'args', args);
+              var e0 = eval0(args.car, env);
+              args = args.cdr;
+              $ans.push(e0);
+            })(c);
+          }
+
+          function answer (aenv, cenv) {
+            var intermediate = [ ];
+            $ans.map(function _iter_answers (e0, i) {
+              var r = e0(aenv, cenv);
+              // console.log('INTERMEDIATE', e0, i, r);
+              intermediate.push(r);
+            });
+            if (infixp) {
+                return infixen.apply(this, [name].concat(intermediate));
+            } else {
+              // console.log('intermediate', intermediate);
+              var result = func.apply(this, intermediate);
+              // console.log('answer', result);
+              if (result && typeof result.cdr === 'undefined') {
+                // console.error(name, runtime.pretty_print(result));
+                // console.error("ARGS", JSON.stringify(args));
+                // throw "bad cdr";
+              }
+              return result;
+            }
+          }
+          return answer;
+        }
+        return do_code;
+
         for(c = 0; c < arity; c++) {
             evalers = evalers.concat(["var e", c, " = eval0(args.car, env);\n"]);
             evalers = evalers.concat(["args = args.cdr;\n"]);
@@ -389,10 +548,12 @@ function VeneerVM() {
 
         var return_val;
         if (infixp === true) {
-            return_val = ["return function(aenv, cenv) { return ", callers[0], " ", name, " ", callers[1], "; };"].join("");
+            return_val = ["\n\treturn function(aenv, cenv) {\n\t\treturn ", callers[0], " ", name, " ", callers[1], "; };\n"].join("");
         } else {
-            return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };"].join("");
+            return_val = ["return function(aenv, cenv) { return ", name, "(", callers.join(", "), "); };\n"].join("");
         }
+        console.log('NEW FUNCTION', name, arity, 'fn_code');
+        console.log([args_evald, return_val].join(""));
         return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
     }
 
@@ -409,7 +570,9 @@ function VeneerVM() {
 
         var args_evald = evalers.join("");
         var return_val = ["return function(aenv, cenv) { ", callers.join("; "), " };"].join("");
-        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n"));
+        console.log('NEW FUNCTION', arity, 'begin_code');
+        console.log('function', '(', args_evald, ')', "\n" + return_val);
+        return new Function(["args, env, eval0"], [args_evald, return_val].join("\n")).bind(this);
     }
 
     function veval(exp, env) {
@@ -472,12 +635,19 @@ function VeneerVM() {
 
     function run_expression(p) {
         var desugared = desugar(p, null);
+        console.log("DESUGARED", desugar);
         var lifted = lift_frees(desugared);
+        console.log("LIFTED", lifted);
 
         var exp = lifted.car;
+        console.log("LIFTED exp", exp);
         var env = cons(null, lifted.cdr.car);
+        console.log("ENV", env);
         var mks = lifted.cdr.cdr.car;
+        console.log("mks", mks);
+        console.log("evald args", exp, env);
         var evald = veval(exp, env);
+        console.log("evald result", evald);
 
         if(procedurep(evald)) {
             var q$ = query_stream(evald, env.cdr, mks);
@@ -500,6 +670,8 @@ function VeneerVM() {
     }
 
     this.reset = function() { toplevel = new Object(null); };
+    this.parse_program = function(text) { return read_program(text); };
     this.eval = function(ast) { return run_program(ast); };
     this.read_eval = function(text) { return run_program(read_program(text)); };
 }
+module.exports = VeneerVM;
