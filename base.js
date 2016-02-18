@@ -8,11 +8,13 @@ function pairp(x) { return x instanceof Pair; }
 function cons(car, cdr) { return new Pair(car, cdr); }
 
 
+var gensym_counter = 0;
+var symbol_table = new Object(null);
+
 function Symbol(str) { this.string = str; }
 
-function gensym(str) { return new Symbol(str); }
+function gensym(str) { return new Symbol([str, "@@", gensym_counter++].join("")); }
 
-var symbol_table = new Object(null);
 function intern(string) {
     if (symbol_table.hasOwnProperty(string)) {
         return symbol_table[string];

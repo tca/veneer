@@ -365,6 +365,7 @@ function VeneerVM() {
     builtins["="] = generate_fn_code("===", 2, true);
     builtins["eq?"] = generate_fn_code("===", 2, true);
     builtins["log"] = generate_fn_code("console.log", 1);
+    builtins["gensym"] = generate_fn_code("gensym", 1);
 
     builtins["conj/2"] = generate_fn_code("conj", 2);
     builtins["disj/2"] = generate_fn_code("disj", 2);
