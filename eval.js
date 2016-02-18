@@ -45,6 +45,9 @@ function VeneerVM() {
         this.val = val;
         this.meta = meta || {};
     }
+    Meta.prototype.toString = function() {
+        return pretty_print(this.val);
+    }
     function meta(v, meta) { return new Meta(v, meta); }
 
     function normalize_params(params) {
@@ -61,7 +64,11 @@ function VeneerVM() {
                 whole = ps;
                 params = params.cdr;
             }
-        } return { normal: reverse(ps), rest: rest, whole: reverse(whole) };
+        }
+        var normal = reverse(ps);
+        var whole = reverse(whole);
+        var min_args = length(normal);
+        return { normal: normal, rest: rest, whole: whole, min_args: min_args };
     }
 
     function desugar(exp, env) {
@@ -286,7 +293,16 @@ function VeneerVM() {
             var len = length(args);
             return function(aenv, cenv) {
                 var clos1 = clos(aenv, cenv);
-                return clos1.car(build_env(len, args, aenv, cenv), clos1.cdr);
+                var args1 = build_env(len, args, aenv, cenv);
+                if (len < clos1[2]) {
+                    throw ["Not enough arguments in call: ", pretty_print(exp),
+                           "\nValues:", JSON.stringify(args1)].join("");
+                } else if (!clos[3] && len > clos1[2]) {
+                    throw ["Too many arguments in call: ", pretty_print(exp),
+                           "\nValues:", JSON.stringify(args1)].join("");
+                } else {
+                    return clos1[0](args1, clos1[1]);
+                }
             };
         case "define":
             var result = eval0(exp.val.cdr.cdr.car, env);
@@ -310,6 +326,8 @@ function VeneerVM() {
             return function(aenv, cenv) { return t(aenv, cenv) ? c(aenv, cenv) : a(aenv, cenv); };
         case "lambda":
             var bindings = exp.val.cdr.car;
+            var min_args = exp.meta.params.min_args;
+            var restp = !nullp(exp.meta.params.rest);
             var body = exp.val.cdr.cdr.car;
             var free_env = foldl(reverse(exp.meta.frees), cons(null, null), augment_cenv);
             var env1_rest = foldl(exp.meta.params.rest, free_env, augment_aenv_rest);
@@ -317,8 +335,9 @@ function VeneerVM() {
             var len = length(exp.meta.frees);
             var free_env1 = map(function(v) { return eval0(meta(v, { tag: "var" }), env); }, exp.meta.frees);
             var closure_body = eval0(body, env1);
-            var closure_env_build = function(aenv, cenv) { return build_env(len, free_env1, aenv, cenv); };
-            var closure = function(aenv, cenv) { return cons(closure_body, closure_env_build(aenv, cenv)); };
+            var closure = function(aenv, cenv) {
+                return [closure_body, build_env(len, free_env1, aenv, cenv), min_args, restp];
+            };
             return closure;
         case "zzz":
             var e1 = eval0(exp.val.cdr.car, env);
@@ -435,8 +454,8 @@ function VeneerVM() {
 
     function apply_fresh(len, closure, aenv, cenv) {
         var closure1 = closure(aenv, cenv);
-        var closure_env = closure1.cdr;
-        var closure_fn = closure1.car;
+        var closure_env = closure1[1];
+        var closure_fn = closure1[0];
         return function(mks) {
             var c = mks.counter;
             var e1_c1 = fresh_n(len, c);
