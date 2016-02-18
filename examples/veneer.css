@@ -58,6 +58,7 @@
     padding: 0 2%;
     background-color:transparent;
     border-width:0; 
+    white-space:pre-wrap;
 }
 
 .error { background-color:#f00; color:#000;}
