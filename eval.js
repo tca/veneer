@@ -295,11 +295,9 @@ function VeneerVM() {
                 var clos1 = clos(aenv, cenv);
                 var args1 = build_env(len, args, aenv, cenv);
                 if (len < clos1[2]) {
-                    throw ["Not enough arguments in call: ", pretty_print(exp),
-                           "\nValues:", JSON.stringify(args1)].join("");
+                    arity_error(clos1[2], len, exp, args1);
                 } else if (!clos[3] && len > clos1[2]) {
-                    throw ["Too many arguments in call: ", pretty_print(exp),
-                           "\nValues:", JSON.stringify(args1)].join("");
+                    arity_error(clos1[2], len, exp, args1);
                 } else {
                     return clos1[0](args1, clos1[1]);
                 }
@@ -462,6 +460,14 @@ function VeneerVM() {
             var mks1 = Mks(mks.substitution, e1_c1[1], mks.diseq, mks.types, mks.absentee);
             return closure_fn(e1_c1[0], closure_env)(mks1);
         };
+    }
+
+    function arity_error(expected, recieved, exp, values) {
+        throw ["Error: Invalid argument count in application",
+               "\nExpected: ", expected,
+               "\nRecieved: ", recieved,
+               "\nExpression: ", pretty_print(exp),
+               "\nValues:", JSON.stringify(values)].join("");
     }
 
     function map_stream(fn, stream) {
