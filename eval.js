@@ -126,6 +126,29 @@ function VeneerVM() {
                     var e2 = cons(intern("disj"), exp.cdr.cdr);
                     return desugar(list(intern("disj/2"), e1, e2), env);
                 }
+            case intern("conde/dfs"):
+                var clauses = map(function(row) { return cons(intern("conj/dfs"), row); }, exp.cdr);
+                return desugar(cons(intern("disj/dfs"), clauses), env);
+            case intern("conj/dfs"):
+                if (exp.cdr == null) { throw "error: empty conj"; }
+                else if (exp.cdr.cdr == null) {
+                    var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
+                    return e1;
+                } else {
+                    var e1 = list(intern("zzz"), exp.cdr.car);
+                    var e2 = cons(intern("conj/dfs"), exp.cdr.cdr);
+                    return desugar(list(intern("conj/dfs/2"), e1, e2), env);
+                }
+            case intern("disj/dfs"):
+                if (exp.cdr == null) { throw "error: empty disj"; }
+                else if (exp.cdr.cdr == null) {
+                    var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
+                    return e1;
+                } else {
+                    var e1 = list(intern("zzz"), exp.cdr.car);
+                    var e2 = cons(intern("disj/dfs"), exp.cdr.cdr);
+                    return desugar(list(intern("disj/dfs/2"), e1, e2), env);
+                }
             case intern("begin"):
                 return meta(cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr)),
                             { tag: "begin" });
@@ -139,6 +162,18 @@ function VeneerVM() {
                     return desugar(cons(intern("conj"), body), env);
                 } else {
                     var fn = list(intern("lambda"), bindings, cons(intern("conj"), body));
+                    var body1 = desugar(fn, env);
+                    var len = desugar(length(bindings), env);
+                    return meta(list(intern("apply/fresh-n"), len, body1),
+                                { tag: "fresh" });
+                }
+            case intern("fresh/dfs"):
+                var bindings = exp.cdr.car;
+                var body = exp.cdr.cdr;
+                if (bindings === null) {
+                    return desugar(cons(intern("conj/dfs"), body), env);
+                } else {
+                    var fn = list(intern("lambda"), bindings, cons(intern("conj/dfs"), body));
                     var body1 = desugar(fn, env);
                     var len = desugar(length(bindings), env);
                     return meta(list(intern("apply/fresh-n"), len, body1),
@@ -386,6 +421,8 @@ function VeneerVM() {
 
     builtins["conj/2"] = generate_fn_code("conj", 2);
     builtins["disj/2"] = generate_fn_code("disj", 2);
+    builtins["conj/dfs/2"] = generate_fn_code("conj_dfs", 2);
+    builtins["disj/dfs/2"] = generate_fn_code("disj_dfs", 2);
     builtins["=="] = generate_fn_code("eqeq", 2);
     builtins["=/="] = generate_fn_code("noteqeq", 2);
     builtins["symbolo"] = generate_fn_code("symbolo", 1);

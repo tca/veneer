@@ -238,6 +238,35 @@ function bind($, g) {
     }
 }
 
+
+function disj_dfs(g1, g2) {
+    return function(mks) { return mplus_dfs(g1(mks), g2(mks)); };
+}
+
+function conj_dfs(g1, g2) {
+    return function(mks) { return bind_dfs(g1(mks), g2); };
+}
+
+function mplus_dfs($1, $2) {
+    if ($1 === null) {
+        return $2;
+    } else if (procedurep($1)) {
+        return function() { return mplus_dfs($1(), $2); };
+    } else {
+        return cons($1.car, mplus_dfs($1.cdr, $2));
+    }
+}
+
+function bind_dfs($, g) {
+    if ($ === null) {
+        return mzero;
+    } else if (procedurep($)) {
+        return function() { return bind_dfs($(), g); };
+    } else {
+        return mplus_dfs(g($.car), bind_dfs($.cdr, g));
+    }
+}
+
 function pull($) {
     while(procedurep($)) {
         $ = $();
