@@ -467,12 +467,27 @@ function VeneerVM() {
     builtins["car"] = generate_fn_code("car", 1);
     builtins["cdr"] = generate_fn_code("cdr", 1);
     builtins["null?"] = generate_fn_code("nullp", 1);
+    builtins["number?"] = generate_fn_code("numberp", 1);
     builtins["+"] = generate_fn_code("+", 2, true);
     builtins["-"] = generate_fn_code("-", 2, true);
+    builtins["*"] = generate_fn_code("*", 2, true);
+    builtins["/"] = generate_fn_code("/", 2, true);
+    builtins["quotient"] = generate_fn_code("quotient", 2);
     builtins["="] = generate_fn_code("===", 2, true);
+    builtins[">"] = generate_fn_code(">", 2, true);
+    builtins["<"] = generate_fn_code("<", 2, true);
+    builtins[">="] = generate_fn_code(">=", 2, true);
+    builtins["<="] = generate_fn_code("<=", 2, true);
+    builtins["odd?"] = generate_fn_code("oddp", 1);
+    builtins["even?"] = generate_fn_code("evenp", 1);
+    builtins["zero?"] = generate_fn_code("zerop", 1);
     builtins["eq?"] = generate_fn_code("===", 2, true);
+    builtins["not"] = generate_fn_code("not", 1);
     builtins["log"] = generate_fn_code("console.log", 1);
     builtins["gensym"] = generate_fn_code("gensym", 1);
+    builtins["reverse"] = generate_fn_code("reverse", 1);
+    builtins["append"] = generate_fn_code("append", 2);
+    builtins["make-list"] = generate_fn_code("make_list", 2);
 
     builtins["conj/2"] = generate_fn_code("conj", 2);
     builtins["disj/2"] = generate_fn_code("disj", 2);
@@ -484,7 +499,6 @@ function VeneerVM() {
     builtins["numbero"] = generate_fn_code("numbero", 1);
     builtins["absento"] = generate_fn_code("absento", 2);
     builtins["build-num"] = generate_fn_code("build_num", 1);
-
     builtins["watch"] = generate_fn_code("watch", 2);
 
     function generate_fn_code(name, arity, infixp) {
