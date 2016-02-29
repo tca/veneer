@@ -11,7 +11,7 @@ function VeneerVM() {
     function quote_desugar(exp) {
         if (pairp(exp)) {
             return meta(list(meta(intern("cons"), {tag:"var"}), quote_desugar(exp.car), quote_desugar(exp.cdr)), {tag:"app-builtin"});
-        } else if (exp == null) {
+        } else if (exp === null) {
             return meta(list(intern("quote"), null), { tag: "quoted" });
         } else if(constantp(exp)) {
             return meta(exp, {tag:"const"});
@@ -107,8 +107,8 @@ function VeneerVM() {
                 var clauses = map(function(row) { return cons(intern("conj"), row); }, exp.cdr);
                 return desugar(cons(intern("disj"), clauses), env);
             case intern("conj"):
-                if (exp.cdr == null) { throw "error: empty conj"; }
-                else if (exp.cdr.cdr == null) {
+                if (exp.cdr === null) { throw "error: empty conj"; }
+                else if (exp.cdr.cdr === null) {
                     var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
                     return e1;
                 } else {
@@ -117,8 +117,8 @@ function VeneerVM() {
                     return desugar(list(intern("conj/2"), e1, e2), env);
                 }
             case intern("disj"):
-                if (exp.cdr == null) { throw "error: empty disj"; }
-                else if (exp.cdr.cdr == null) {
+                if (exp.cdr === null) { throw "error: empty disj"; }
+                else if (exp.cdr.cdr === null) {
                     var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
                     return e1;
                 } else {
@@ -130,8 +130,8 @@ function VeneerVM() {
                 var clauses = map(function(row) { return cons(intern("conj/dfs"), row); }, exp.cdr);
                 return desugar(cons(intern("disj/dfs"), clauses), env);
             case intern("conj/dfs"):
-                if (exp.cdr == null) { throw "error: empty conj"; }
-                else if (exp.cdr.cdr == null) {
+                if (exp.cdr === null) { throw "error: empty conj"; }
+                else if (exp.cdr.cdr === null) {
                     var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
                     return e1;
                 } else {
@@ -140,8 +140,8 @@ function VeneerVM() {
                     return desugar(list(intern("conj/dfs/2"), e1, e2), env);
                 }
             case intern("disj/dfs"):
-                if (exp.cdr == null) { throw "error: empty disj"; }
-                else if (exp.cdr.cdr == null) {
+                if (exp.cdr === null) { throw "error: empty disj"; }
+                else if (exp.cdr.cdr === null) {
                     var e1 = desugar(list(intern("zzz"), exp.cdr.car), env);
                     return e1;
                 } else {
@@ -155,6 +155,61 @@ function VeneerVM() {
             case intern("if"):
                 return meta(cons(exp.car, map(function(f) { return desugar(f, env); }, exp.cdr)),
                             { tag: "if" });
+
+            case intern("and"):
+                if (exp.cdr === null) {
+                    // (and) => true
+                    return desugar(true, env);
+                } else if (exp.cdr.cdr === null) {
+                    // (and a) => a
+                    return desugar(exp.cdr.car, env);
+                } else {
+                    // (and a . r) => (if a (and . r) #f)
+                    return desugar(list(intern("if"), exp.cdr.car,
+                                        cons(intern("and"), exp.cdr.cdr),
+                                        false),
+                                   env);
+                }
+            case intern("or"):
+                if (exp.cdr === null) {
+                    // (or) => false
+                    return desugar(false, env);
+                } else if (exp.cdr.cdr === null) {
+                    // (or a) => a
+                    return desugar(exp.cdr.car, env);
+                } else {
+                    // (or a . r) => (let ((tmp a)) (if tmp tmp (or . r)))
+                    var tmp = gensym("tmp");
+                    return desugar(list(intern("let"), list(list(tmp, exp.cdr.car)),
+                                        list(intern("if"), tmp, tmp, cons(intern("or"), exp.cdr.cdr))),
+                                   env);
+                }
+            case intern("cond"):
+                if (exp.cdr === null) {
+                    throw "error: empty cond";
+                } else if(exp.cdr.cdr === null) {
+                    if(exp.cdr.car.car === intern("else")) {
+                        // (cond (else . x)) => (begin . x)
+                        return desugar(cons(intern("begin"), exp.cdr.car.cdr), env);
+                    } else {
+                        // (cond (a . b)) => (if a (begin . b) #f)
+                        return desugar(list(intern("if"), exp.cdr.car.car,
+                                            cons(intern("begin"), exp.cdr.car.cdr),
+                                            false),
+                                       env);
+                    }
+                } else {
+                    // (cond (a . b) . r) => (if a (begin . b) (cond . r))
+                    return desugar(list(intern("if"), exp.cdr.car.car,
+                                        cons(intern("begin"), exp.cdr.car.cdr),
+                                        cons(intern("cond"), exp.cdr.cdr)),
+                                   env);
+                }
+            case intern("let"):
+                // (let ((a  b) ...) . body) => ((lambda (a ...) . body) b ...)
+                return desugar(cons(cons(intern("lambda"), cons(map(car, exp.cdr.car),  exp.cdr.cdr)),
+                                    map(function(e) { return e.cdr.car; }, exp.cdr.car)),
+                              env);
             case intern("fresh"):
                 var bindings = exp.cdr.car;
                 var body = exp.cdr.cdr;
