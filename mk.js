@@ -149,14 +149,14 @@ function watch_collect(xs, k) {
     return function(s) {
         var xs1 = walk(xs, s);
         if(varp(xs1)) { return watch_collect(xs1, k); }
-        else if(pairp(xs)) {
+        else if(pairp(xs1)) {
             var k1 = function(x, s) {
                 var k2 = function(y, s) { return k(cons(x,y), s); };
-                return watch_collect(cdr(xs), k2)(s);
+                return watch_collect(cdr(xs1), k2)(s);
             };
-            return watch_collect(car(xs), k1)(s);
+            return watch_collect(car(xs1), k1)(s);
         }
-        else { return k(xs, s); }
+        else { return k(xs1, s); }
     };
 }
 
