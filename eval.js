@@ -310,7 +310,7 @@ function VeneerVM() {
                               var var1 = mkvar(e_c.cdr);
                               var retrieve = function(_) { return function(_) { return var1; }; };
                               return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr + 1); });
-        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null));
+        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null, null));
     }
 
     function eval0(exp, env) {
@@ -430,6 +430,8 @@ function VeneerVM() {
     builtins["absento"] = generate_fn_code("absento", 2);
     builtins["build-num"] = generate_fn_code("build_num", 1);
 
+    builtins["watch"] = generate_fn_code("watch", 2);
+
     function generate_fn_code(name, arity, infixp) {
         var c = 0;
         var evalers = [];
@@ -494,7 +496,7 @@ function VeneerVM() {
         return function(mks) {
             var c = mks.counter;
             var e1_c1 = fresh_n(len, c);
-            var mks1 = Mks(mks.substitution, e1_c1[1], mks.diseq, mks.types, mks.absentee);
+            var mks1 = Mks(mks.substitution, e1_c1[1], mks.diseq, mks.types, mks.absentee, mks.watch);
             return closure_fn(e1_c1[0], closure_env)(mks1);
         };
     }

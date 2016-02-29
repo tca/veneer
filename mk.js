@@ -3,14 +3,15 @@ function mkvar(c) { return new Var(c); }
 function varp(x) { return (x instanceof Var); }
 function vareq(x1, x2) { return x1.c === x2.c; }
 
-function MiniKanrenState(s, c, d, ty, ab) {
+function MiniKanrenState(s, c, d, ty, ab, w) {
     this.substitution = s;
     this.counter = c;
     this.diseq = d;
     this.types = ty;
     this.absentee = ab;
+    this.watch = w;
 }
-function Mks(s, c, d, ty, ab) { return new MiniKanrenState(s, c, d, ty, ab); }
+function Mks(s, c, d, ty, ab, w) { return new MiniKanrenState(s, c, d, ty, ab, w); }
 
 var not_found = [];
 function walk(u, s) {
@@ -43,14 +44,14 @@ function ext_s_check(x, v, s) {
 function eqeq(u, v) {
     return function(mks) {
         var s = unify(u, v, mks.substitution);
-        return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.types, mks.absentee)) : mzero;
+        return s !== false ? normalize_constraint_store(Mks(s, mks.counter, mks.diseq, mks.types, mks.absentee, mks.watch)) : mzero;
     };
 }
 
 function noteqeq(u, v) {
     return function(mks) {
         var d = disequality(u, v, mks.substitution);
-        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.types, mks.absentee)) : mzero;
+        return d !== false ? unit(Mks(mks.substitution, mks.counter, cons(d, mks.diseq), mks.types, mks.absentee, mks.watch)) : mzero;
     };
 }
 
@@ -81,7 +82,7 @@ function typeo(v, p) {
         } else if (ty1 === ty) {
             return unit(mks);
         } else {
-            var mks1 = Mks(mks.substitution, mks.counter, mks.diseq, ty1, mks.absentee);
+            var mks1 = Mks(mks.substitution, mks.counter, mks.diseq, ty1, mks.absentee, mks.watch);
             return normalize_constraint_store(mks1);
         }
     };
@@ -89,7 +90,7 @@ function typeo(v, p) {
 
 function absento(s, f) {
     return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee)));
+        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee, mks.watch)));
     };
 }
 
@@ -109,6 +110,7 @@ function unify(u, v, s) {
         return (u1 === v1) && s;
     }
 }
+
 
 function ext_s_check_prefix(x, v, s, cs) {
     if (occurs_check(x, v, s)) {
@@ -143,7 +145,71 @@ function disequality(u, v, s) {
     }
 }
 
+function watch_collect(xs, k) {
+    return function(s) {
+        var xs1 = walk(xs, s);
+        if(varp(xs1)) { return watch_collect(xs1, k); }
+        else if(pairp(xs)) {
+            var k1 = function(x, s) {
+                var k2 = function(y, s) { return k(cons(x,y), s); };
+                return watch_collect(cdr(xs), k2)(s);
+            };
+            return watch_collect(car(xs), k1)(s);
+        }
+        else { return k(xs, s); }
+    };
+}
+
+function watch(x, g) {
+   return function(mks) {
+       var g1 = function(val) { return function(mks) { return g[0]([val], g[1])(mks); }; };
+       var k = function(val,s) { return [g1(val)]; };
+       var watches = cons(watch_collect(x, k), mks.watch);
+       var mks1 = Mks(mks.substitution, mks.counter, mks.diseq, mks.types, mks.absentee, watches);
+       return normalize_surveilence(mks1);
+   }
+}
+
+function normalize_surveilence(mks) {
+    var ws = mks.watch;
+    var wn = null;
+    var done = null;
+
+    // for each watched var:
+    // 1. if stream is empty, execute constraint
+    // 2. else re-queue watch at this position
+    while (ws !== null && ws !== undefined) {
+        // pick out a watch
+        var w = car(ws)(mks.substitution);
+        if(procedurep(w)) { // requeue and break
+            wn = cons(w, wn);
+        } else { // done
+            done = cons(w[0], done);
+        }
+        ws = cdr(ws);
+    }
+
+    // run all todo
+    function execute_goals(gs) {
+        return function(mks) {
+            if (gs === null) {
+                return unit(mks);
+            } else {
+                return bind(car(gs)(mks), execute_goals(cdr(gs)));
+            }
+        }
+    };
+
+    var mks1 = Mks(mks.substitution, mks.counter,mks.diseq, mks.types, mks.absentee, wn);
+    return execute_goals(done)(mks1);
+}
+
 function normalize_constraint_store(mks) {
+    return bind(normalize_surveilence(mks), normalize_constraint_store1);
+}
+
+
+function normalize_constraint_store1(mks) {
     var s = mks.substitution;
     var c = mks.counter;
     var d = mks.diseq;
@@ -152,6 +218,7 @@ function normalize_constraint_store(mks) {
     var tyn = Immutable.Map();
     var abs = mks.absentee;
     var absn = null;
+    var ws = mks.watch;
 
     // Normalize the type constraints
     ty.forEach(function(p, v) {
@@ -201,13 +268,13 @@ function normalize_constraint_store(mks) {
         // forget constraint, it can never fail
     }
 
-    return unit(Mks(s, c, dn, tyn, absn));
+    return unit(Mks(s, c, dn, tyn, absn, ws));
 }
 
 function call_fresh(f) {
     return function(mks) {
         var c = mks.counter;
-        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.types, mks.absentee));
+        return f(mkvar(c))(Mks(mks.substitution, (c + 1), mks.diseq, mks.types, mks.absentee, mks.watch));
     };
 }
 
