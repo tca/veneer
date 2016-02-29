@@ -66,6 +66,21 @@ function read_symbol(input_stream) {
     }
 }
 
+function read_hex(input_stream) {
+    var buffer = [input_stream.read_char()];
+    var c;
+    while(true) {
+        c = input_stream.read_char();
+        if(!eofp(c) && symbolicp(c)) {
+            buffer.push(c);
+        } else {
+            input_stream.unread_char();
+            var result = buffer.join("");
+            return parseInt(result, 16);
+        }
+    }
+}
+
 function read_string(input_stream) {
     var buffer = [];
     var c;
@@ -155,6 +170,7 @@ function read_hash(input_stream) {
     switch (input_stream.read_char()) {
     case "f": return false;
     case "t": return true;
+    case "x": return read_hex(input_stream);
     case "\\": return input_stream.read_char();
     default: throw  "unknown hash code";
     }
