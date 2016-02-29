@@ -33,6 +33,13 @@ function booleanp(t) { return typeof t === "boolean"; }
 function stringp(t) { return typeof t === "string"; }
 function constantp(t) { return numberp(t) || booleanp(t) || stringp(t); }
 
+function not(x) { return x === false; }
+
+function quotient(a, b) { return Math.trunc(a/b); }
+function oddp(n) { return (n % 2) == 1; }
+function evenp(n) { return (n % 2) == 0; }
+function zerop(n) { return n === 0; }
+
 function Ref(v) {
     this.val = v;
 }
@@ -79,6 +86,21 @@ function reverse_aux(lst, memo) {
 
 function reverse(lst) {
     return reverse_aux(lst, null);
+}
+
+function append(as, bs) {
+    if(as === null) {
+        return bs;
+    } else {
+        return cons(as.car, append(as.cdr, bs));
+    }
+}
+
+function make_list(len, elem) {
+    var accum = null;
+    while (len-- > 0) {
+        accum = cons(elem, accum);
+    } return accum;
 }
 
 function array_slice_list(arr, from) {
