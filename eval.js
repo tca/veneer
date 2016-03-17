@@ -365,7 +365,7 @@ function VeneerVM() {
                               var var1 = mkvar(e_c.cdr);
                               var retrieve = function(_) { return function(_) { return var1; }; };
                               return cons(cons(cons(a.cdr, retrieve), e_c.car), e_c.cdr + 1); });
-        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null, null));
+        return list(exp1, e1_c1.car, Mks(Immutable.Map(), e1_c1.cdr, null, Immutable.Map(), null, Immutable.Map()));
     }
 
     function eval0(exp, env) {
