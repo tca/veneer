@@ -386,7 +386,7 @@ function VeneerVM() {
                 var args1 = build_env(len, args, aenv, cenv);
                 if (len < clos1[2]) {
                     arity_error(clos1[2], len, exp, args1);
-                } else if (!clos[3] && len > clos1[2]) {
+                } else if (!clos1[3] && len > clos1[2]) {
                     arity_error(clos1[2], len, exp, args1);
                 } else {
                     return clos1[0](args1, clos1[1]);
@@ -415,7 +415,7 @@ function VeneerVM() {
         case "lambda":
             var bindings = exp.val.cdr.car;
             var min_args = exp.meta.params.min_args;
-            var restp = !nullp(exp.meta.params.rest);
+            var restp = !(exp.meta.params.rest === null);
             var body = exp.val.cdr.cdr.car;
             var free_env = foldl(reverse(exp.meta.frees), cons(null, null), augment_cenv);
             var env1_rest = foldl(exp.meta.params.rest, free_env, augment_aenv_rest);
