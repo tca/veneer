@@ -90,7 +90,7 @@ function typeo(v, p) {
 
 function absento(s, f) {
     return function(mks) {
-        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee, mks.watch)), null);
+        return normalize_constraint_store(Mks(mks.substitution, mks.counter, mks.diseq, mks.types, cons(cons(s, f), mks.absentee), mks.watch), null);
     };
 }
 
